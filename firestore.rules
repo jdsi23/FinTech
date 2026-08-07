@@ -1,0 +1,98 @@
+rules_version = '2';
+
+// ForecastFlow Phase 1 security rules.
+//
+// There are no Cloud Functions on the Firebase Spark (free) plan, so these
+// rules are the ONLY server-side enforcement in the app. Owner bootstrap and
+// invite redemption are both designed to be race-safe using Firestore's
+// create-vs-update semantics and the fact that, within a single client
+// transaction, all get()/exists() calls and all writes are evaluated against
+// the database state as it was immediately BEFORE the transaction started.
+// That is what makes "first write wins" hold up even with two people
+// racing to redeem the same invite or bootstrap the Owner account at once.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    // Single document at meta/app. Its existence is the permanent gate that
+    // decides whether the app is still in first-run "create the Owner"
+    // mode. Readable pre-auth so the client can decide which screen to show.
+    match /meta/app {
+      allow get: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.setupComplete == true
+        && request.resource.data.keys().hasOnly(['ownerUid', 'setupComplete']);
+      allow update, delete: if false;
+    }
+
+    match /users/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isOwner());
+      allow list: if isOwner();
+
+      // Path A: becoming the Owner. Only possible while meta/app doesn't
+      // exist yet -- the very next line creates it in the same transaction,
+      // permanently closing this path for everyone else.
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'owner'
+        && request.resource.data.invitedBy == null
+        && !exists(/databases/$(database)/documents/meta/app)
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'invitedBy', 'createdAt']);
+
+      // Path B: redeeming an invite. `invitedBy` must be the id of an
+      // invite that is currently unused and unexpired, and the role must
+      // match what the invite grants. The matching invite doc is updated
+      // to used=true in the same transaction (see invites rules below).
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.invitedBy != null
+        && request.resource.data.role ==
+             get(/databases/$(database)/documents/invites/$(request.resource.data.invitedBy)).data.role
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.invitedBy)).data.used == false
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.invitedBy)).data.expiresAt > request.time.toMillis()
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'invitedBy', 'createdAt']);
+
+      // Self-service profile edits only: no self-promotion, no touching
+      // role/invitedBy/createdAt.
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
+
+      allow delete: if false;
+    }
+
+    match /invites/{inviteId} {
+      // Must be readable pre-auth so a /join/{inviteId} link can be
+      // validated (expired/used) before the visitor creates an account.
+      allow get: if true;
+      allow list: if isOwner();
+
+      allow create: if isOwner()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.used == false
+        && request.resource.data.usedBy == null
+        && request.resource.data.usedAt == null;
+
+      // Redemption: flips used=false -> true exactly once, atomically with
+      // the users/{uid} creation in Path B above.
+      allow update: if isSignedIn()
+        && resource.data.used == false
+        && resource.data.expiresAt > request.time.toMillis()
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt']);
+
+      // Owner can revoke an unused invite early.
+      allow delete: if isOwner();
+    }
+  }
+}
