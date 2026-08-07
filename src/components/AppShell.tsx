@@ -39,6 +39,9 @@ export function AppShell({ role, children }: { role: UserRole; children: ReactNo
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-slate-500 dark:text-slate-400">{displayName}</span>
+            <NavLink to="/account/security" className={navLinkClass}>
+              Account
+            </NavLink>
             <button
               onClick={() => signOutUser()}
               className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"

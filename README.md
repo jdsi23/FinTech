@@ -8,11 +8,11 @@ hosted for free on GitHub Pages.
 This README documents **every manual step** needed to get the project running, from a
 completely empty machine to a live, deployed app. Follow it in order the first time.
 
-> **Project status: Phase 1 of many.** This phase builds the toolchain, hosting pipeline,
-> and the invite-only account system (Owner bootstrap + invites, email/password + Google
-> sign-in, email verification). The Dashboard, Calendar, Goals, and Reports screens are
-> currently blank placeholders — they're built in later phases. Biometric sign-in (Face ID /
-> fingerprint / Windows Hello / passkeys) is also a later phase.
+> **Project status: Phase 2 of many.** Phase 1 built the toolchain, hosting pipeline, and the
+> invite-only account system. Phase 2 (this one) adds optional biometric device unlock (Face
+> ID / Windows Hello / fingerprint). The Dashboard, Calendar, Goals, and Reports screens are
+> still blank placeholders, and the Control Center only has Invite Management so far — both
+> are later phases.
 
 ---
 
@@ -246,6 +246,36 @@ There is no public sign-up — the spec calls for invite-only registration.
 
 ---
 
+## 11. Enabling biometric unlock (optional)
+
+Once you're signed in, click **Account** in the top nav to reach **Account & Security**. If your
+browser/device supports it, you can click **Enable on this device** to set up Face ID, Windows Hello,
+or a fingerprint as a shortcut for reopening the app on that specific device.
+
+**What this actually does — read this before relying on it.** This is a convenience *unlock gate* for
+a browser session that's already signed in, not a new way to authenticate with Firebase. You will
+always still be able to sign in with your email and password (or Google) — biometrics never replace
+that, per the original spec. Concretely:
+
+- It's per-device and per-browser. Setting it up on your laptop's Chrome doesn't enable it on your
+  phone, or even in a different browser on the same laptop — you'd enable it separately on each.
+- The only thing it changes is what happens when you *reopen* the app with an already-remembered
+  session (i.e. you checked "Remember me" previously): instead of dropping you straight into the app,
+  it asks for Face ID/Windows Hello/fingerprint first. A fresh sign-in with your password or Google
+  always skips this prompt, since you just proved who you are.
+- If the prompt fails, is cancelled, or times out, you get **Try again** or **Use password instead** —
+  the latter signs out and returns you to the normal sign-in screen, exactly as the spec describes.
+- There's no server involved in checking this (see "Why no backend?" above — same constraint). Your
+  browser's own WebAuthn implementation enforces the actual biometric/PIN check; we just trust that a
+  successful result means it passed. This protects your account if someone picks up your unlocked
+  laptop or phone. It does **not** add protection against someone with direct access to your browser's
+  local storage extracting the underlying Firebase session — that's a ceiling inherent to a project
+  with no backend server, the same trade-off the invite system makes.
+
+You can disable it on a given device any time from the same Account & Security page.
+
+---
+
 ## Folder structure
 
 ```
@@ -260,7 +290,8 @@ There is no public sign-up — the spec calls for invite-only registration.
 │   ├── features/
 │   │   ├── auth/                  # Login, email verification, shared auth actions
 │   │   ├── setup/                 # First-run Owner creation screen
-│   │   └── invites/               # Invite redemption (/join/:id) + Owner's invite manager
+│   │   ├── invites/               # Invite redemption (/join/:id) + Owner's invite manager
+│   │   └── biometrics/            # WebAuthn wrapper, unlock gate, Account & Security page
 │   ├── routes/AppRoutes.tsx       # All routing + the auth/owner/verification guard logic
 │   ├── pages/                     # Dashboard, Calendar, Goals — placeholders for now
 │   └── components/                # Shared UI: AuthLayout, form fields, buttons, AppShell
@@ -287,6 +318,18 @@ There is no public sign-up — the spec calls for invite-only registration.
 8. In the Firebase Console → Firestore, confirm there are two documents under `users/`, with
    `role: "owner"` and `role: "user"` respectively.
 
+### Biometric unlock checklist (needs a device with Face ID / Windows Hello / a fingerprint reader)
+
+1. Sign in normally — no biometric prompt appears (a fresh sign-in never triggers it).
+2. Go to **Account** → **Account & Security** → **Enable on this device**. Complete the OS
+   prompt. Status should flip to "Enabled."
+3. Reload the page. You should now see **Unlock ForecastFlow** instead of the app.
+4. Complete the biometric prompt successfully — you land back on the Dashboard.
+5. Reload again and this time cancel the prompt — you should see **Try again** and **Use
+   password instead**. Clicking the latter signs you out and shows the normal Sign in screen.
+6. Sign back in, return to Account & Security, click **Disable on this device**, reload once
+   more — you should go straight to the app with no prompt, same as before you enabled it.
+
 ### Verify the deployed site
 
 Repeat steps 1–2 against your live GitHub Pages URL. If you already created the Owner
@@ -307,6 +350,8 @@ same Firestore database.
 | GitHub Actions build fails on the "Build" step | Usually a missing/misnamed repository secret — double check all six `VITE_FIREBASE_*` secrets exist and match your `.env.local` exactly (step 7). |
 | Invite link shows "invite is not valid" immediately | The invite ID in the URL doesn't match a document in Firestore — check you copied the whole link, and that the rules have been deployed. |
 | Google sign-in popup closes immediately / does nothing | Common on some browsers/ad-blockers with popups. Try disabling popup blockers for the site, or use email/password instead. |
+| "Enable on this device" is missing / shows "not supported" | Your browser or device doesn't support WebAuthn platform authenticators, or you're not on HTTPS/localhost (WebAuthn requires a secure context — both `localhost` dev and the deployed GitHub Pages site qualify). |
+| Biometric unlock prompt never appears after reload, even though it's enabled | It only triggers on a *silently restored* session — if you just signed in interactively this page-load, it's intentionally skipped. Also check "Remember me" was checked at sign-in; without it there's no persisted session to restore in the first place. |
 
 ---
 
@@ -329,9 +374,8 @@ same Firestore database.
 
 ## What's next
 
-Phase 1 covers the scaffold, hosting pipeline, and invite-only auth system. Later phases
-(not yet built) add: biometric sign-in (Face ID/fingerprint/Windows Hello/passkeys) as an
-*optional* layer on top of the password you already have, the full Control Center (User
-Management, App/Security Settings, Database Info, Backups, System Stats), the Dashboard's
-financial summary, the forecasting Calendar, Income/Expenses, Goals with savings strategies,
-and Reports.
+Phase 1 covered the scaffold, hosting pipeline, and invite-only auth system. Phase 2 (this
+one) added optional biometric device unlock. Later phases (not yet built) add: the rest of
+the Control Center (User Management, App/Security Settings, Database Info, Backups, System
+Stats), the Dashboard's financial summary, the forecasting Calendar, Income/Expenses, Goals
+with savings strategies, and Reports.

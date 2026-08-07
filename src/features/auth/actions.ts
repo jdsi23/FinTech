@@ -14,6 +14,7 @@ import {
 import { addDoc, collection, doc, runTransaction } from 'firebase/firestore'
 import { auth, db } from '../../lib/firebase'
 import type { InviteDoc, UserRole } from '../../types/firestore'
+import { markUnlocked } from '../biometrics/biometricStore'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -31,18 +32,21 @@ export async function signUpWithEmail(
   const cred = await createUserWithEmailAndPassword(auth, email, password)
   await updateProfile(cred.user, { displayName })
   await sendEmailVerification(cred.user)
+  markUnlocked()
   return cred.user
 }
 
 export async function signInWithEmail(email: string, password: string, remember: boolean): Promise<User> {
   await applyPersistence(remember)
   const cred = await signInWithEmailAndPassword(auth, email, password)
+  markUnlocked()
   return cred.user
 }
 
 export async function signInWithGoogle(remember: boolean): Promise<User> {
   await applyPersistence(remember)
   const cred = await signInWithPopup(auth, googleProvider)
+  markUnlocked()
   return cred.user
 }
 
