@@ -16,7 +16,7 @@ function inviteLink(id: string): string {
   return `${origin}${pathname}#/join/${id}`
 }
 
-function inviteStatus(invite: InviteDoc): { label: string; className: string } {
+export function inviteStatus(invite: InviteDoc): { label: string; className: string } {
   if (invite.used) return { label: 'Used', className: 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }
   if (invite.expiresAt <= Date.now())
     return { label: 'Expired', className: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' }
@@ -31,12 +31,18 @@ export function InviteManagePage() {
   const [error, setError] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
+  const defaultExpirationDays = useAuthStore((s) => s.appMeta?.defaultInviteExpirationDays)
+
   useEffect(() => {
     const q = query(collection(db, 'invites'), orderBy('createdAt', 'desc'))
     return onSnapshot(q, (snap) => {
       setInvites(snap.docs.map((d) => ({ id: d.id, ...(d.data() as InviteDoc) })))
     })
   }, [])
+
+  useEffect(() => {
+    if (defaultExpirationDays) setExpiresInDays(defaultExpirationDays)
+  }, [defaultExpirationDays])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()

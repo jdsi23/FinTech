@@ -4,6 +4,7 @@ import { LoginPage } from '../features/auth/LoginPage'
 import { VerifyEmailPage } from '../features/auth/VerifyEmailPage'
 import { OwnerSetupPage } from '../features/setup/OwnerSetupPage'
 import { AccountIncompletePage } from '../features/auth/AccountIncompletePage'
+import { AccessDisabledPage } from '../features/auth/AccessDisabledPage'
 import { JoinPage } from '../features/invites/JoinPage'
 import { InviteManagePage } from '../features/invites/InviteManagePage'
 import { AppShell } from '../components/AppShell'
@@ -14,6 +15,11 @@ import { AccountSecurityPage } from '../features/biometrics/AccountSecurityPage'
 import { BiometricUnlockPage } from '../features/biometrics/BiometricUnlockPage'
 import { useBiometricStore } from '../features/biometrics/biometricStore'
 import { hasBiometricCredential } from '../features/biometrics/webauthn'
+import { ControlCenterHome } from '../features/control-center/ControlCenterHome'
+import { UserManagementPage } from '../features/control-center/UserManagementPage'
+import { SystemInfoPage } from '../features/control-center/SystemInfoPage'
+import { BackupPage } from '../features/control-center/BackupPage'
+import { SettingsPage } from '../features/control-center/SettingsPage'
 
 function LoadingScreen() {
   return (
@@ -35,6 +41,7 @@ function Protected() {
   const unlocked = useBiometricStore((s) => s.unlocked)
   const userDocReady = useAuthStore((s) => s.userDocReady)
   const role = useAuthStore((s) => s.userDoc?.role)
+  const disabled = useAuthStore((s) => s.userDoc?.disabled ?? false)
 
   if (!ready) return <LoadingScreen />
   if (!hasOwner) return <OwnerSetupPage />
@@ -43,6 +50,7 @@ function Protected() {
   if (!unlocked && uid && hasBiometricCredential(uid)) return <BiometricUnlockPage uid={uid} />
   if (!userDocReady) return <LoadingScreen />
   if (!role) return <AccountIncompletePage />
+  if (disabled && role !== 'owner') return <AccessDisabledPage />
 
   return (
     <AppShell role={role}>
@@ -51,7 +59,16 @@ function Protected() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/account/security" element={<AccountSecurityPage />} />
-        {role === 'owner' && <Route path="/control-center/invites" element={<InviteManagePage />} />}
+        {role === 'owner' && (
+          <>
+            <Route path="/control-center" element={<ControlCenterHome />} />
+            <Route path="/control-center/invites" element={<InviteManagePage />} />
+            <Route path="/control-center/users" element={<UserManagementPage />} />
+            <Route path="/control-center/system" element={<SystemInfoPage />} />
+            <Route path="/control-center/backup" element={<BackupPage />} />
+            <Route path="/control-center/settings" element={<SettingsPage />} />
+          </>
+        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

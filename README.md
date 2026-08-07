@@ -8,11 +8,11 @@ hosted for free on GitHub Pages.
 This README documents **every manual step** needed to get the project running, from a
 completely empty machine to a live, deployed app. Follow it in order the first time.
 
-> **Project status: Phase 2 of many.** Phase 1 built the toolchain, hosting pipeline, and the
-> invite-only account system. Phase 2 (this one) adds optional biometric device unlock (Face
-> ID / Windows Hello / fingerprint). The Dashboard, Calendar, Goals, and Reports screens are
-> still blank placeholders, and the Control Center only has Invite Management so far — both
-> are later phases.
+> **Project status: Phase 3 of many.** Phase 1 built the toolchain, hosting pipeline, and the
+> invite-only account system. Phase 2 added optional biometric device unlock. Phase 3 (this
+> one) fills out the rest of the Control Center: User Management, Database & System Info,
+> Backup Management, and App & Security Settings. The Dashboard, Calendar, and Goals screens
+> are still blank placeholders — that's the next phase.
 
 ---
 
@@ -276,6 +276,42 @@ You can disable it on a given device any time from the same Account & Security p
 
 ---
 
+## 12. The rest of Control Center
+
+Clicking **Control Center** now opens a landing page linking to five screens instead of going straight
+to Invite Management.
+
+- **User Management** — lists everyone with an account (name, email, role, join date, status), and
+  lets you **Disable**/**Enable** any non-Owner user. Disabling blocks their access to the app itself,
+  but it does **not** delete their sign-in credentials — there's no way to delete another person's
+  Firebase Auth account from the client without a backend, so a disabled person can still reach the
+  sign-in screen, they just can't get past it. There's also no way to promote a regular user to Owner
+  from this screen — the single-Owner model set up in Phase 1 is intentional and stays that way.
+- **Database & System Info** — live counts of users (by role) and invites (active/used/expired), your
+  Firebase project ID, and direct links into the Firebase Console.
+- **Backup Management** — a **Download backup** button that exports every `users` and `invites`
+  document into a JSON file. There's no restore button: writing that data back would mean bulk-writing
+  other people's account records past the security rules that exist specifically to prevent that, so
+  treat the download as a point-in-time export to keep somewhere safe, not a live backup/restore system.
+- **App & Security Settings** — set a custom app name (replaces "ForecastFlow" in the header for
+  everyone) and the default expiration used when creating new invites. Also includes a read-only
+  summary of the app's actual security model — Firestore Rules as the only enforcement, email
+  verification, invite-only registration, and where biometric unlock is managed — rather than toggles
+  for things this app doesn't actually have a backend to enforce.
+
+**Before any of this works against your real project, redeploy the updated rules** (same command as
+step 4):
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Phase 3 added two rules changes: an owner-only update path on `meta/app` (for App Settings) and an
+owner-only update path on `users/{uid}` limited to the `disabled` field (for User Management, and
+never usable on the Owner's own document).
+
+---
+
 ## Folder structure
 
 ```
@@ -291,7 +327,8 @@ You can disable it on a given device any time from the same Account & Security p
 │   │   ├── auth/                  # Login, email verification, shared auth actions
 │   │   ├── setup/                 # First-run Owner creation screen
 │   │   ├── invites/               # Invite redemption (/join/:id) + Owner's invite manager
-│   │   └── biometrics/            # WebAuthn wrapper, unlock gate, Account & Security page
+│   │   ├── biometrics/            # WebAuthn wrapper, unlock gate, Account & Security page
+│   │   └── control-center/        # User Management, System Info, Backup, Settings (owner-only)
 │   ├── routes/AppRoutes.tsx       # All routing + the auth/owner/verification guard logic
 │   ├── pages/                     # Dashboard, Calendar, Goals — placeholders for now
 │   └── components/                # Shared UI: AuthLayout, form fields, buttons, AppShell
@@ -330,6 +367,20 @@ You can disable it on a given device any time from the same Account & Security p
 6. Sign back in, return to Account & Security, click **Disable on this device**, reload once
    more — you should go straight to the app with no prompt, same as before you enabled it.
 
+### Control Center checklist (deploy the updated rules first — see step 12)
+
+1. As the Owner, **Control Center** opens a landing page with five links.
+2. **User Management** lists the Owner and any invited user(s); the Owner's row has no
+   Disable control, but other rows do.
+3. Disable a non-owner user, then in an incognito window signed in as that user, confirm you
+   see **Access disabled** instead of the app. Re-enable them and reload — access returns.
+4. **Database & System Info** counts match what you see in User/Invite Management.
+5. **Backup Management** → **Download backup** produces a `.json` file containing the users
+   and invites you expect.
+6. **App & Security Settings**: change the app name, save, confirm the header updates
+   immediately; change the default invite expiration, save, then open **Invite Management**
+   fresh and confirm the "Expires in" field is pre-filled with your new value instead of `7`.
+
 ### Verify the deployed site
 
 Repeat steps 1–2 against your live GitHub Pages URL. If you already created the Owner
@@ -352,6 +403,8 @@ same Firestore database.
 | Google sign-in popup closes immediately / does nothing | Common on some browsers/ad-blockers with popups. Try disabling popup blockers for the site, or use email/password instead. |
 | "Enable on this device" is missing / shows "not supported" | Your browser or device doesn't support WebAuthn platform authenticators, or you're not on HTTPS/localhost (WebAuthn requires a secure context — both `localhost` dev and the deployed GitHub Pages site qualify). |
 | Biometric unlock prompt never appears after reload, even though it's enabled | It only triggers on a *silently restored* session — if you just signed in interactively this page-load, it's intentionally skipped. Also check "Remember me" was checked at sign-in; without it there's no persisted session to restore in the first place. |
+| `permission-denied` when disabling a user or saving Settings | The Phase 3 rules haven't been deployed yet — run `firebase deploy --only firestore:rules` (step 12). |
+| Disabling a user doesn't seem to do anything | It blocks *app* access, not their ability to reach the sign-in screen — there's no way to delete another person's Firebase Auth account from the client. Confirm you're checking whether they can get *past* sign-in, not whether sign-in itself is unreachable. |
 
 ---
 
@@ -366,16 +419,15 @@ same Firestore database.
 - **Rotating a Firebase config value:** if you ever suspect it's been misused, you can
   regenerate it in Firebase Console → Project settings, then update it in both `.env.local`
   and your GitHub Actions repository secrets.
-- **Backups:** Firestore data can be exported from the Firebase Console (Firestore →
-  Import/Export) — a proper in-app backup feature is planned for a later phase (see the
-  Control Center section of the spec).
+- **Backups:** Control Center → Backup Management gives a one-click JSON export of `users`/
+  `invites`. For a full database export (including anything future phases add), use the
+  Firebase Console (Firestore → Import/Export) instead.
 
 ---
 
 ## What's next
 
-Phase 1 covered the scaffold, hosting pipeline, and invite-only auth system. Phase 2 (this
-one) added optional biometric device unlock. Later phases (not yet built) add: the rest of
-the Control Center (User Management, App/Security Settings, Database Info, Backups, System
-Stats), the Dashboard's financial summary, the forecasting Calendar, Income/Expenses, Goals
-with savings strategies, and Reports.
+Phase 1 covered the scaffold, hosting pipeline, and invite-only auth system. Phase 2 added optional
+biometric device unlock. Phase 3 (this one) completed the Control Center. Later phases (not yet built)
+add: the Dashboard's financial summary, the forecasting Calendar, Income/Expenses, Goals with savings
+strategies, and Reports.

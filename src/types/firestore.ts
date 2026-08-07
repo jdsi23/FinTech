@@ -7,6 +7,11 @@ export type UserRole = 'owner' | 'user'
 export interface AppMetaDoc {
   ownerUid: string
   setupComplete: true
+  // Owner-editable via Control Center -> Settings (Phase 3). Absent means
+  // "use the default" — no migration needed for docs created before these
+  // fields existed.
+  appName?: string
+  defaultInviteExpirationDays?: number
 }
 
 export interface UserDoc {
@@ -15,6 +20,9 @@ export interface UserDoc {
   role: UserRole
   invitedBy: string | null
   createdAt: number
+  // Owner-only toggle (Phase 3). Absent/false = active. Never true for the
+  // Owner's own doc — enforced in both firestore.rules and the UI.
+  disabled?: boolean
 }
 
 export interface InviteDoc {

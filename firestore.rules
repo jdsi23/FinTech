@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// ForecastFlow Phase 1 security rules.
+// ForecastFlow security rules (Phase 1 auth/invites + Phase 3 Control Center).
 //
 // There are no Cloud Functions on the Firebase Spark (free) plan, so these
 // rules are the ONLY server-side enforcement in the app. Owner bootstrap and
@@ -32,7 +32,17 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.setupComplete == true
         && request.resource.data.keys().hasOnly(['ownerUid', 'setupComplete']);
-      allow update, delete: if false;
+
+      // Owner-only app settings (Phase 3). ownerUid/setupComplete are
+      // permanent once created -- this rule can only touch the two new
+      // optional fields, never those.
+      allow update: if isOwner()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.setupComplete == resource.data.setupComplete
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['appName', 'defaultInviteExpirationDays']);
+
+      allow delete: if false;
     }
 
     match /users/{uid} {
@@ -66,6 +76,13 @@ service cloud.firestore {
       // role/invitedBy/createdAt.
       allow update: if isSignedIn() && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
+
+      // Owner-only: enable/disable a user's access (Phase 3). Can never be
+      // used on the Owner's own doc -- there is exactly one Owner, and
+      // disabling them would lock everyone out of Control Center.
+      allow update: if isOwner()
+        && resource.data.role != 'owner'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['disabled']);
 
       allow delete: if false;
     }
