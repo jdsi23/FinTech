@@ -49,7 +49,10 @@ export function AppearanceProvider({ uid, children }: { uid: string; children: R
       <div
         aria-hidden
         className="fixed inset-0 -z-10 bg-cover bg-center bg-fixed bg-slate-50 dark:bg-slate-950"
-        style={resolved.backgroundImageUrl ? { backgroundImage: `url(${resolved.backgroundImageUrl})` } : undefined}
+        style={{
+          ...(resolved.backgroundColor ? { backgroundColor: resolved.backgroundColor } : {}),
+          ...(resolved.backgroundImageUrl ? { backgroundImage: `url(${resolved.backgroundImageUrl})` } : {}),
+        }}
       />
       {children}
     </AppearanceContext.Provider>

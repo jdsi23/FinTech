@@ -140,6 +140,11 @@ export interface AppearancePrefs {
   presetId: string // 'default' | 'simple' | 'midnight' | 'ocean' | 'sunset' | 'forest' | 'custom'
   primaryColor: string // hex; drives the indigo-* CSS variable ramp app-wide
   backgroundImageUrl?: string // pasted image URL, shown behind app content
+  // Absent = keep the original dark-mode-responsive slate background/header
+  // classes. Set = a fixed hex override applied regardless of light/dark
+  // mode (full custom colors don't auto-adjust for system theme).
+  backgroundColor?: string
+  headerColor?: string // applied to the nav header and Calendar's weekday-label row
   layoutMode: LayoutMode
   // Only independently editable when layoutMode === 'custom' -- 'simple'
   // always forces showBranding false / compactNav true.

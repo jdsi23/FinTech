@@ -102,6 +102,10 @@ export interface AppearancePreset {
   label: string
   description: string
   primaryColor: string
+  // Absent on Default/Simple -- they keep the original dark-mode-responsive
+  // slate look rather than a fixed override.
+  backgroundColor?: string
+  headerColor?: string
   layoutMode: LayoutMode
 }
 
@@ -123,35 +127,43 @@ export const PRESETS: AppearancePreset[] = [
   {
     id: 'midnight',
     label: 'Midnight',
-    description: 'A moody deep-violet accent.',
+    description: 'A moody deep-violet accent on a near-black background.',
     primaryColor: '#7c3aed',
+    backgroundColor: '#0f0a1e',
+    headerColor: '#1a1030',
     layoutMode: 'default',
   },
   {
     id: 'ocean',
     label: 'Ocean',
-    description: 'A cool teal accent.',
+    description: 'A cool teal accent on a pale cyan background.',
     primaryColor: '#0d9488',
+    backgroundColor: '#f0fdfa',
+    headerColor: '#ecfeff',
     layoutMode: 'default',
   },
   {
     id: 'sunset',
     label: 'Sunset',
-    description: 'A warm amber accent.',
+    description: 'A warm amber accent on a soft cream background.',
     primaryColor: '#ea580c',
+    backgroundColor: '#fff7ed',
+    headerColor: '#ffedd5',
     layoutMode: 'default',
   },
   {
     id: 'forest',
     label: 'Forest',
-    description: 'A grounded green accent.',
+    description: 'A grounded green accent on a pale sage background.',
     primaryColor: '#16a34a',
+    backgroundColor: '#f0fdf4',
+    headerColor: '#dcfce7',
     layoutMode: 'default',
   },
   {
     id: 'custom',
     label: 'Custom',
-    description: 'Pick your own color and layout below.',
+    description: 'Pick your own colors and layout below.',
     primaryColor: '#6366f1',
     layoutMode: 'custom',
   },

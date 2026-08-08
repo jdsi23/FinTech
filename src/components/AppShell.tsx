@@ -24,7 +24,10 @@ export function AppShell({ role, children }: { role: UserRole; children: ReactNo
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <header
+        className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+        style={resolved.headerColor ? { backgroundColor: resolved.headerColor } : undefined}
+      >
         <div className={`mx-auto flex max-w-6xl items-center justify-between px-6 ${compact ? 'py-1.5' : 'py-3'}`}>
           <div className="flex items-center gap-6">
             {resolved.showBranding && (

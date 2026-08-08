@@ -10,6 +10,7 @@ import { setStartingBalance } from '../finance/actions'
 import { getCheckInDates } from '../goals/goalMath'
 import { dateKey } from '../../lib/recurrence'
 import { sanitizeNumericInput } from '../../lib/numberInput'
+import { useAppearance } from '../appearance/AppearanceProvider'
 import type { ExpenseDoc, GoalDoc, IncomeDoc, MerchantDoc } from '../../types/firestore'
 
 export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -17,6 +18,7 @@ export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 export function CalendarPage() {
   const uid = useAuthStore((s) => s.firebaseUser?.uid)
   const startingBalance = useAuthStore((s) => s.userDoc?.startingBalance ?? 0)
+  const { resolved } = useAppearance()
 
   const incomeSources = useCollection<IncomeDoc>(uid, 'incomeSources')
   const expenses = useCollection<ExpenseDoc>(uid, 'expenses')
@@ -135,6 +137,7 @@ export function CalendarPage() {
           <div
             key={label}
             className="bg-slate-50 p-2 text-center text-xs font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-400"
+            style={resolved.headerColor ? { backgroundColor: resolved.headerColor } : undefined}
           >
             {label}
           </div>

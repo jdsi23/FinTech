@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
-import { FormField, PrimaryButton, SecondaryButton } from '../../components/AuthLayout'
+import { ErrorBanner, FormField, PrimaryButton, SecondaryButton } from '../../components/AuthLayout'
 import { useAppearance } from './AppearanceProvider'
 import { saveAppearance } from './actions'
 import { DEFAULT_APPEARANCE, PRESETS } from '../../lib/theme'
@@ -19,6 +19,7 @@ export function AppearancePage() {
   const [loadedOnce, setLoadedOnce] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loadedOnce) {
@@ -41,20 +42,27 @@ export function AppearancePage() {
   if (!uid) return null
 
   function selectPreset(preset: (typeof PRESETS)[number]) {
+    const isCustom = preset.layoutMode === 'custom'
     setDraft((prev) => ({
       ...applyLayoutMode(preset.layoutMode, prev),
       presetId: preset.id,
-      primaryColor: preset.layoutMode === 'custom' ? prev.primaryColor : preset.primaryColor,
+      primaryColor: isCustom ? prev.primaryColor : preset.primaryColor,
+      backgroundColor: isCustom ? prev.backgroundColor : preset.backgroundColor,
+      headerColor: isCustom ? prev.headerColor : preset.headerColor,
     }))
     setMessage(null)
+    setError(null)
   }
 
   async function handleSave() {
     if (!uid) return
     setBusy(true)
+    setError(null)
     try {
       await saveAppearance(uid, draft)
       setMessage('Saved.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save your appearance settings.')
     } finally {
       setBusy(false)
     }
@@ -63,11 +71,13 @@ export function AppearancePage() {
   function handleDiscard() {
     setDraft(saved)
     setMessage(null)
+    setError(null)
   }
 
   function handleResetDraft() {
     setDraft(DEFAULT_APPEARANCE)
-    setMessage('Reset to default -- click Save to keep it.')
+    setMessage("Reset to default -- click Save to keep it.")
+    setError(null)
   }
 
   return (
@@ -76,6 +86,12 @@ export function AppearancePage() {
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Personal to your account -- changes here only affect how the app looks for you.
       </p>
+
+      {error && (
+        <div className="mt-4">
+          <ErrorBanner message={error} />
+        </div>
+      )}
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Presets</h2>
@@ -125,7 +141,32 @@ export function AppearancePage() {
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Background</h2>
-        <div className="mt-2 flex items-end gap-3">
+        <div className="mt-2 flex items-center gap-3">
+          <input
+            type="color"
+            value={draft.backgroundColor ?? '#f8fafc'}
+            onChange={(e) => setDraft((prev) => ({ ...prev, backgroundColor: e.target.value }))}
+            className="h-10 w-14 cursor-pointer rounded-md border border-slate-300 dark:border-slate-700"
+          />
+          <div className="w-40">
+            <FormField
+              label="Background color hex"
+              type="text"
+              value={draft.backgroundColor ?? ''}
+              placeholder="Default (light/dark)"
+              onChange={(e) => setDraft((prev) => ({ ...prev, backgroundColor: e.target.value || undefined }))}
+            />
+          </div>
+          <div className="mb-3 w-24">
+            <SecondaryButton
+              type="button"
+              onClick={() => setDraft((prev) => ({ ...prev, backgroundColor: undefined }))}
+            >
+              Clear
+            </SecondaryButton>
+          </div>
+        </div>
+        <div className="mt-3 flex items-end gap-3">
           <div className="flex-1">
             <FormField
               label="Background image URL"
@@ -140,6 +181,35 @@ export function AppearancePage() {
               type="button"
               onClick={() => setDraft((prev) => ({ ...prev, backgroundImageUrl: undefined }))}
             >
+              Clear
+            </SecondaryButton>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Header</h2>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          The nav bar at the top of the app, and the Calendar's weekday row.
+        </p>
+        <div className="mt-2 flex items-center gap-3">
+          <input
+            type="color"
+            value={draft.headerColor ?? '#ffffff'}
+            onChange={(e) => setDraft((prev) => ({ ...prev, headerColor: e.target.value }))}
+            className="h-10 w-14 cursor-pointer rounded-md border border-slate-300 dark:border-slate-700"
+          />
+          <div className="w-40">
+            <FormField
+              label="Header color hex"
+              type="text"
+              value={draft.headerColor ?? ''}
+              placeholder="Default (light/dark)"
+              onChange={(e) => setDraft((prev) => ({ ...prev, headerColor: e.target.value || undefined }))}
+            />
+          </div>
+          <div className="mb-3 w-24">
+            <SecondaryButton type="button" onClick={() => setDraft((prev) => ({ ...prev, headerColor: undefined }))}>
               Clear
             </SecondaryButton>
           </div>
