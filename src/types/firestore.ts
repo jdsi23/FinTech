@@ -130,3 +130,25 @@ export interface GoalDoc {
   checkIns: Record<string, number>
   createdAt: number
 }
+
+export type LayoutMode = 'default' | 'simple' | 'custom'
+
+// Per-user cosmetic preferences (Phase 8), stored at users/{uid}/appearance/prefs.
+// Absent doc (or absent field) reproduces the app's original default look
+// exactly -- see src/lib/theme.ts DEFAULT_APPEARANCE.
+export interface AppearancePrefs {
+  presetId: string // 'default' | 'simple' | 'midnight' | 'ocean' | 'sunset' | 'forest' | 'custom'
+  primaryColor: string // hex; drives the indigo-* CSS variable ramp app-wide
+  backgroundImageUrl?: string // pasted image URL, shown behind app content
+  layoutMode: LayoutMode
+  // Only independently editable when layoutMode === 'custom' -- 'simple'
+  // always forces showBranding false / compactNav true.
+  showBranding: boolean
+  compactNav: boolean
+  // Per-user home screen name/icon for "Add to Home Screen" (iOS/Android).
+  // Takes effect the next time this user (re-)adds the site to their home
+  // screen -- there's no way to update an icon already pinned on a device.
+  homeScreenName?: string
+  homeScreenIconUrl?: string // pasted image URL
+  updatedAt: number
+}

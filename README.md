@@ -418,6 +418,38 @@ the one dimension nothing already supported.
 
 ---
 
+## 16. Appearance & Home Screen Customization
+
+A new **Appearance** page (next to Account) lets each user personalize how the app looks and how it
+shows up if they add it to their phone's home screen. It's entirely per-user — nothing here touches the
+Owner-only "App name" setting in Control Center — and stored at `users/{uid}/appearance/prefs`, so an
+account that never visits this page sees the app's exact original look with no changes.
+
+- **Color presets and a full custom color picker.** Default, Simple, Midnight, Ocean, Sunset, Forest, or
+  Custom — each preset is one accent color plus a layout. Picking any color (preset or custom) re-themes
+  every button, link, active nav state, and focus ring app-wide instantly, because those all already
+  draw from the same Tailwind `indigo-*` palette, and that palette is just CSS variables under the hood
+  — no other component needed to change for this to work.
+- **Background image.** A pasted image URL rendered behind the app's cards/content (not behind text), so
+  legibility isn't affected. No file upload — that would require Firebase Cloud Storage, which now needs
+  the paid Blaze plan even at zero real usage, so this stays URL-only on the free Spark plan.
+- **Layout: Default / Simple / Custom.** Simple shrinks the nav to a tighter, grouped, bookmark-bar-style
+  row and hides the "ForecastFlow" wordmark. Custom exposes those same two knobs (compact nav, show
+  branding) individually.
+- **Home screen name/icon.** Sets the name/icon your phone uses if you tap "Add to Home Screen." This is
+  a real platform limitation, not a shortcut we took: there's no API to update an icon already pinned on
+  a device, so a change here only applies the *next* time you (re-)add the site to your home screen.
+- **Save / Don't Save / Load / Reset to Default.** Everything on the page is a local draft, live-previewed
+  across the whole app while the page is open. Only **Save** writes to Firestore. **Don't Save** and
+  **Load** both discard the draft back to your last-saved settings (there's no multi-profile library
+  here, so those two are equivalent). **Reset to Default** blanks the draft back to the built-in default
+  — still nothing is written until you click Save.
+
+`firestore.rules` needs one addition for this phase — `users/{uid}/appearance/{id}` — otherwise it's the
+same private, path-isolated pattern as `goals`/`incomeSources`/etc.
+
+---
+
 ## Folder structure
 
 ```
@@ -440,10 +472,13 @@ the one dimension nothing already supported.
 │   │   ├── goals/                  # Savings-strategy math, check-ins, Goal Journey
 │   │   ├── dashboard/              # Monthly Financial Summary, Upcoming Bills, Quick Actions
 │   │   ├── reports/                 # Chart views + reportMath.ts aggregation
-│   │   └── search/                  # Cross-entity filtering + searchMath.ts
+│   │   ├── search/                  # Cross-entity filtering + searchMath.ts
+│   │   └── appearance/              # Per-user theming, layout, and home screen branding
 │   ├── lib/recurrence.ts          # Occurrence generation math (recurring items -> dates)
 │   ├── lib/paymentMethods.ts      # Payment method labels/colors, used consistently app-wide
 │   ├── lib/chartColors.ts         # Hex equivalents of the same palette, for Recharts
+│   ├── lib/theme.ts               # Color ramp math + built-in Appearance presets
+│   ├── lib/homeScreen.ts          # Dynamic apple-touch-icon/manifest.json for "Add to Home Screen"
 │   ├── lib/useCollection.ts       # Shared hook: live-subscribe to a users/{uid}/{path} subcollection
 │   ├── routes/AppRoutes.tsx       # All routing + the auth/owner/verification guard logic
 │   └── components/                # Shared UI: AuthLayout, form fields, buttons, AppShell, Modal

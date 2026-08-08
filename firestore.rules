@@ -103,6 +103,9 @@ service cloud.firestore {
       match /goals/{id} {
         allow read, write: if request.auth.uid == uid;
       }
+      match /appearance/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
     }
 
     match /invites/{inviteId} {

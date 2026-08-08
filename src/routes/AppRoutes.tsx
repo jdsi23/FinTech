@@ -14,6 +14,8 @@ import { GoalsPage } from '../features/goals/GoalsPage'
 import { ReportsPage } from '../features/reports/ReportsPage'
 import { SearchPage } from '../features/search/SearchPage'
 import { AccountSecurityPage } from '../features/biometrics/AccountSecurityPage'
+import { AppearanceProvider } from '../features/appearance/AppearanceProvider'
+import { AppearancePage } from '../features/appearance/AppearancePage'
 import { BiometricUnlockPage } from '../features/biometrics/BiometricUnlockPage'
 import { useBiometricStore } from '../features/biometrics/biometricStore'
 import { hasBiometricCredential } from '../features/biometrics/webauthn'
@@ -55,27 +57,30 @@ function Protected() {
   if (disabled && role !== 'owner') return <AccessDisabledPage />
 
   return (
-    <AppShell role={role}>
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/goals" element={<GoalsPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/account/security" element={<AccountSecurityPage />} />
-        {role === 'owner' && (
-          <>
-            <Route path="/control-center" element={<ControlCenterHome />} />
-            <Route path="/control-center/invites" element={<InviteManagePage />} />
-            <Route path="/control-center/users" element={<UserManagementPage />} />
-            <Route path="/control-center/system" element={<SystemInfoPage />} />
-            <Route path="/control-center/backup" element={<BackupPage />} />
-            <Route path="/control-center/settings" element={<SettingsPage />} />
-          </>
-        )}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AppShell>
+    <AppearanceProvider uid={uid!}>
+      <AppShell role={role}>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/account/security" element={<AccountSecurityPage />} />
+          <Route path="/account/appearance" element={<AppearancePage />} />
+          {role === 'owner' && (
+            <>
+              <Route path="/control-center" element={<ControlCenterHome />} />
+              <Route path="/control-center/invites" element={<InviteManagePage />} />
+              <Route path="/control-center/users" element={<UserManagementPage />} />
+              <Route path="/control-center/system" element={<SystemInfoPage />} />
+              <Route path="/control-center/backup" element={<BackupPage />} />
+              <Route path="/control-center/settings" element={<SettingsPage />} />
+            </>
+          )}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppShell>
+    </AppearanceProvider>
   )
 }
 
