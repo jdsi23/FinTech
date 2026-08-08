@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, deleteField, doc, updateDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import type { GoalDoc } from '../../types/firestore'
 
@@ -21,4 +21,8 @@ export async function deleteGoal(uid: string, id: string): Promise<void> {
 
 export async function logCheckIn(uid: string, goalId: string, weekKey: string, amount: number): Promise<void> {
   await updateDoc(doc(db, 'users', uid, 'goals', goalId), { [`checkIns.${weekKey}`]: amount })
+}
+
+export async function clearCheckIn(uid: string, goalId: string, weekKey: string): Promise<void> {
+  await updateDoc(doc(db, 'users', uid, 'goals', goalId), { [`checkIns.${weekKey}`]: deleteField() })
 }

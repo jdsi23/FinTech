@@ -9,7 +9,7 @@ import { IncomeForm } from '../finance/IncomeForm'
 import { ExpenseForm } from '../finance/ExpenseForm'
 import { incomeMeta, paymentMethodMeta } from '../../lib/paymentMethods'
 import { checkInWeekKey, getCheckInDates, suggestedStretchTarget, suggestedWeekly } from '../goals/goalMath'
-import { logCheckIn } from '../goals/actions'
+import { clearCheckIn, logCheckIn, updateGoal } from '../goals/actions'
 import type { ExpenseDoc, GoalDoc, IncomeDoc, OccurrenceStatus } from '../../types/firestore'
 
 const STATUS_LABEL: Record<OccurrenceStatus, string> = {
@@ -116,11 +116,26 @@ export function DailyView({
                 ? suggestedStretchTarget(goal, date)
                 : null
 
+            const amountValue = checkInInputs[goal.id] ?? logged ?? 0
+
             return (
               <div key={goal.id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                <div className="flex items-center gap-2">
-                  <span>{goal.icon}</span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100">{goal.name}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span>{goal.icon}</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">{goal.name}</span>
+                  </div>
+                  {goal.strategy === 'slightly_early' && (
+                    <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <input
+                        type="checkbox"
+                        checked={goal.evenSoonerEnabled ?? false}
+                        onChange={(e) => updateGoal(uid, goal.id, { evenSoonerEnabled: e.target.checked })}
+                        className="h-3.5 w-3.5 rounded border-slate-300"
+                      />
+                      Even Sooner
+                    </label>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Target: ${target.toFixed(2)}/week</p>
                 {stretch !== null && (
@@ -128,27 +143,39 @@ export function DailyView({
                     Suggested stretch target: ${stretch.toFixed(2)}/week
                   </p>
                 )}
-                {logged !== undefined ? (
-                  <p className="mt-2 text-sm text-green-700 dark:text-green-400">Logged: ${logged.toFixed(2)}</p>
-                ) : (
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Amount saved"
-                      value={checkInInputs[goal.id] ?? ''}
-                      onChange={(e) =>
-                        setCheckInInputs((prev) => ({ ...prev, [goal.id]: Number(e.target.value) }))
-                      }
-                      className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Amount saved"
+                    value={checkInInputs[goal.id] ?? logged ?? ''}
+                    onChange={(e) => setCheckInInputs((prev) => ({ ...prev, [goal.id]: Number(e.target.value) }))}
+                    className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  />
+                  <button
+                    onClick={() => logCheckIn(uid, goal.id, weekKey, amountValue)}
+                    className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    {logged !== undefined ? 'Update' : 'Log'}
+                  </button>
+                  {logged !== undefined && (
                     <button
-                      onClick={() => logCheckIn(uid, goal.id, weekKey, checkInInputs[goal.id] ?? 0)}
-                      className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+                      onClick={() => {
+                        clearCheckIn(uid, goal.id, weekKey)
+                        setCheckInInputs((prev) => {
+                          const next = { ...prev }
+                          delete next[goal.id]
+                          return next
+                        })
+                      }}
+                      className="text-sm text-slate-500 hover:underline dark:text-slate-400"
                     >
-                      Log
+                      Undo
                     </button>
-                  </div>
+                  )}
+                </div>
+                {logged !== undefined && (
+                  <p className="mt-1 text-xs text-green-700 dark:text-green-400">Logged: ${logged.toFixed(2)}</p>
                 )}
               </div>
             )
