@@ -44,6 +44,16 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function handleEvenSoonerChange(checked: boolean) {
+    if (!checked && itemId) {
+      const ok = window.confirm(
+        'Disabling Even Sooner will turn off the stretch target for all upcoming weekly check-ins on this goal. You can re-enable it at any time.\n\nAre you sure?',
+      )
+      if (!ok) return
+    }
+    setEvenSoonerEnabled(checked)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -163,7 +173,7 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
           <input
             type="checkbox"
             checked={evenSoonerEnabled}
-            onChange={(e) => setEvenSoonerEnabled(e.target.checked)}
+            onChange={(e) => handleEvenSoonerChange(e.target.checked)}
             className="h-4 w-4 rounded border-slate-300"
           />
           Even Sooner (gradually increase the suggested amount over time)

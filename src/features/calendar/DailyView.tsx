@@ -85,6 +85,16 @@ export function DailyView({
     setEditingKey(null)
   }
 
+  async function toggleEvenSooner(goal: GoalDoc & { id: string }, checked: boolean) {
+    if (!checked) {
+      const ok = window.confirm(
+        'Disabling Even Sooner will turn off the stretch target for all upcoming weekly check-ins on this goal. You can re-enable it at any time.\n\nAre you sure?',
+      )
+      if (!ok) return
+    }
+    await updateGoal(uid, goal.id, { evenSoonerEnabled: checked })
+  }
+
   if (addingKind) {
     return (
       <Modal title={addingKind === 'income' ? 'Add income' : 'Add expense'} onClose={onClose}>
@@ -130,7 +140,7 @@ export function DailyView({
                       <input
                         type="checkbox"
                         checked={goal.evenSoonerEnabled ?? false}
-                        onChange={(e) => updateGoal(uid, goal.id, { evenSoonerEnabled: e.target.checked })}
+                        onChange={(e) => toggleEvenSooner(goal, e.target.checked)}
                         className="h-3.5 w-3.5 rounded border-slate-300"
                       />
                       Even Sooner
