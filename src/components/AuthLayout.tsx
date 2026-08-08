@@ -43,6 +43,24 @@ export function FormField({
   )
 }
 
+export function SelectField({
+  label,
+  children,
+  ...props
+}: { label: string; children: ReactNode } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <label className="mb-3 block text-sm">
+      <span className="mb-1 block font-medium text-slate-700 dark:text-slate-300">{label}</span>
+      <select
+        {...props}
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+      >
+        {children}
+      </select>
+    </label>
+  )
+}
+
 export function PrimaryButton({
   children,
   ...props

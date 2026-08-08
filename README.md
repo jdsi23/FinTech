@@ -8,11 +8,10 @@ hosted for free on GitHub Pages.
 This README documents **every manual step** needed to get the project running, from a
 completely empty machine to a live, deployed app. Follow it in order the first time.
 
-> **Project status: Phase 3 of many.** Phase 1 built the toolchain, hosting pipeline, and the
-> invite-only account system. Phase 2 added optional biometric device unlock. Phase 3 (this
-> one) fills out the rest of the Control Center: User Management, Database & System Info,
-> Backup Management, and App & Security Settings. The Dashboard, Calendar, and Goals screens
-> are still blank placeholders — that's the next phase.
+> **Project status: Phase 4 of many.** Phase 1 built the toolchain, hosting pipeline, and the
+> invite-only account system. Phase 2 added optional biometric device unlock. Phase 3 filled
+> out the Control Center. Phase 4 (this one) adds real financial data: Income & Expenses, and
+> the Calendar. Dashboard, Goals, and Reports are still blank placeholders — later phases.
 
 ---
 
@@ -312,6 +311,45 @@ never usable on the Owner's own document).
 
 ---
 
+## 13. Income, Expenses & the Calendar
+
+The Calendar is now the real thing — click **Calendar** in the nav.
+
+- **Adding items**: click any day to open its detail view, then **+ Add income** or **+ Add expense**.
+  Or click the floating **+ Log Today** button (bottom right) to add something dated today from
+  wherever you're currently looking in the calendar.
+- **Recurring items**: check "This repeats" on either form to pick a frequency (Weekly, Bi-Weekly,
+  Monthly, Quarterly, Yearly, or Custom — an interval in days). Future occurrences aren't separate
+  documents; they're calculated on the fly from the one item you created, so there's nothing to clean
+  up if you change your mind about the amount or the schedule.
+- **Marking activity**: in a day's detail view, each item can be marked **Complete** (as-scheduled),
+  given a different actual amount (which shows as **Modified**), or **Skipped** — all on any past,
+  present, or future date. **Undo** reverts back to Scheduled.
+- **Pausing recurrence**: click **Manage items** (next to the month navigation) to see every income
+  source and expense in one list, where you can edit, **Pause**/**Resume** recurrence, or delete.
+  Pausing stops future occurrences from generating but keeps any history you've already logged.
+- **Starting balance**: set once near the top of the Calendar page. Every day's small balance figure
+  is this starting balance plus the net of everything scheduled/completed/modified (skipped items
+  don't count) from your very first item through that day.
+
+**One honest limitation:** the running balance is recalculated from scratch in your browser every time
+the Calendar loads — fine at personal scale (dozens of income/expense sources), but if you're ever
+using this app with years of dense recurring history, that calculation is the first thing to revisit
+(e.g. storing periodic running-balance checkpoints instead of computing from day one every time).
+
+**Before this works against your real project**, redeploy the updated rules (same command as before):
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Phase 4 added subcollection rules for `users/{uid}/incomeSources`, `users/{uid}/expenses`, and
+`users/{uid}/merchants` — each strictly private to that user (not even the Owner can read another
+user's financial data, unlike the admin-facing `users`/`invites` collections) — plus one more
+self-editable field (`startingBalance`) on the existing `users/{uid}` update rule.
+
+---
+
 ## Folder structure
 
 ```
@@ -328,10 +366,14 @@ never usable on the Owner's own document).
 │   │   ├── setup/                 # First-run Owner creation screen
 │   │   ├── invites/               # Invite redemption (/join/:id) + Owner's invite manager
 │   │   ├── biometrics/            # WebAuthn wrapper, unlock gate, Account & Security page
-│   │   └── control-center/        # User Management, System Info, Backup, Settings (owner-only)
+│   │   ├── control-center/        # User Management, System Info, Backup, Settings (owner-only)
+│   │   ├── finance/                # Income/expense CRUD, forms, merchant autocomplete
+│   │   └── calendar/               # Month grid, Daily View, Manage Items, Log Today
+│   ├── lib/recurrence.ts          # Occurrence generation math (recurring items -> dates)
+│   ├── lib/paymentMethods.ts      # Payment method labels/colors, used consistently app-wide
 │   ├── routes/AppRoutes.tsx       # All routing + the auth/owner/verification guard logic
-│   ├── pages/                     # Dashboard, Calendar, Goals — placeholders for now
-│   └── components/                # Shared UI: AuthLayout, form fields, buttons, AppShell
+│   ├── pages/                     # Dashboard, Goals — placeholders for now
+│   └── components/                # Shared UI: AuthLayout, form fields, buttons, AppShell, Modal
 ```
 
 ---
@@ -381,6 +423,21 @@ never usable on the Owner's own document).
    immediately; change the default invite expiration, save, then open **Invite Management**
    fresh and confirm the "Expires in" field is pre-filled with your new value instead of `7`.
 
+### Calendar checklist (deploy the updated rules first — see step 13)
+
+1. Add a non-recurring expense dated today — appears on today's cell and in that day's detail view.
+2. Add a recurring income (e.g. Monthly) anchored a few days in the past — confirm it shows up on
+   its anchor date, and navigating the calendar forward shows it recurring into future months.
+3. In a day's detail view, mark an occurrence **Complete**, then try **Edit amount** on a different
+   one and confirm it shows as **Modified** with the new amount reflected in that day's totals.
+4. **Skip** an occurrence — confirm it's visually struck through and excluded from the balance.
+5. In **Manage items**, **Pause** a recurring item that has past history — confirm past dates you
+   already logged still show correctly, but no new occurrences appear after today.
+6. Set a starting balance at the top of the Calendar page — confirm the small balance figure shown
+   on days with activity updates accordingly.
+7. Use the floating **+ Log Today** button from a month other than the current one — confirm the
+   item lands on today's actual date, not whatever month you were viewing.
+
 ### Verify the deployed site
 
 Repeat steps 1–2 against your live GitHub Pages URL. If you already created the Owner
@@ -405,6 +462,9 @@ same Firestore database.
 | Biometric unlock prompt never appears after reload, even though it's enabled | It only triggers on a *silently restored* session — if you just signed in interactively this page-load, it's intentionally skipped. Also check "Remember me" was checked at sign-in; without it there's no persisted session to restore in the first place. |
 | `permission-denied` when disabling a user or saving Settings | The Phase 3 rules haven't been deployed yet — run `firebase deploy --only firestore:rules` (step 12). |
 | Disabling a user doesn't seem to do anything | It blocks *app* access, not their ability to reach the sign-in screen — there's no way to delete another person's Firebase Auth account from the client. Confirm you're checking whether they can get *past* sign-in, not whether sign-in itself is unreachable. |
+| `permission-denied` when adding income/expenses or setting a starting balance | The Phase 4 rules haven't been deployed yet — run `firebase deploy --only firestore:rules` (step 13). |
+| A recurring item doesn't show up in a future month | Check it isn't paused (Manage items shows "(paused)" next to paused items) — pausing intentionally stops new occurrences from generating, while preserving history you already logged. |
+| Calendar balance looks wrong after editing an old item | The balance recalculates from your very first item forward every time the Calendar loads, so an edited past amount changes every day's balance after it — that's expected, not a bug. |
 
 ---
 
@@ -428,6 +488,6 @@ same Firestore database.
 ## What's next
 
 Phase 1 covered the scaffold, hosting pipeline, and invite-only auth system. Phase 2 added optional
-biometric device unlock. Phase 3 (this one) completed the Control Center. Later phases (not yet built)
-add: the Dashboard's financial summary, the forecasting Calendar, Income/Expenses, Goals with savings
-strategies, and Reports.
+biometric device unlock. Phase 3 completed the Control Center. Phase 4 (this one) added Income,
+Expenses, and the Calendar. Later phases (not yet built) add: the Dashboard's financial summary, Goals
+with savings strategies, and Reports.

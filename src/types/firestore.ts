@@ -1,6 +1,8 @@
-// Firestore document shapes for Phase 1 (auth/owner/invites).
-// Future collections (income, expenses, goals, etc.) will follow the same
-// pattern of an `ownerId` field checked against `request.auth.uid` in rules.
+// Firestore document shapes for auth/owner/invites (Phase 1) and personal
+// finance data (Phase 4). Financial data lives under users/{uid}/... as
+// subcollections rather than top-level collections with an ownerId field —
+// see firestore.rules for why (path-based isolation for strictly private
+// per-user data, unlike users/invites which are legitimately Owner-visible).
 
 export type UserRole = 'owner' | 'user'
 
@@ -23,6 +25,9 @@ export interface UserDoc {
   // Owner-only toggle (Phase 3). Absent/false = active. Never true for the
   // Owner's own doc — enforced in both firestore.rules and the UI.
   disabled?: boolean
+  // Self-editable (Phase 4). Absent = 0. Used as the base for the Calendar's
+  // per-day projected ending balance.
+  startingBalance?: number
 }
 
 export interface InviteDoc {
@@ -33,5 +38,55 @@ export interface InviteDoc {
   usedAt: number | null
   expiresAt: number
   createdBy: string
+  createdAt: number
+}
+
+export type Frequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom'
+
+export type PaymentMethod = 'debit' | 'credit' | 'cash' | 'bank_transfer' | 'check' | 'digital_wallet'
+
+export type OccurrenceStatus = 'scheduled' | 'completed' | 'modified' | 'skipped'
+
+/** A per-occurrence exception on a recurring (or one-off) item, keyed by
+ * ISO date (YYYY-MM-DD) on the parent doc's `overrides` map. */
+export interface OccurrenceOverride {
+  status: OccurrenceStatus
+  actualAmount?: number
+  notes?: string
+}
+
+interface RecurringFields {
+  recurring: boolean
+  // Only meaningful when recurring is true. Absent/true = generating future
+  // occurrences; false = paused (history via `overrides` still shows).
+  recurringEnabled?: boolean
+  frequency?: Frequency
+  // Only meaningful when frequency === 'custom': the interval in days.
+  customIntervalDays?: number
+  overrides?: Record<string, OccurrenceOverride>
+}
+
+export interface IncomeDoc extends RecurringFields {
+  name: string
+  amount: number
+  // Anchor date (first/only occurrence), ms epoch.
+  date: number
+  depositAccount: string
+  notes: string
+  createdAt: number
+}
+
+export interface ExpenseDoc extends RecurringFields {
+  merchant: string
+  category: string
+  amount: number
+  date: number
+  paymentMethod: PaymentMethod
+  notes: string
+  createdAt: number
+}
+
+export interface MerchantDoc {
+  name: string
   createdAt: number
 }

@@ -1,6 +1,7 @@
 rules_version = '2';
 
-// ForecastFlow security rules (Phase 1 auth/invites + Phase 3 Control Center).
+// ForecastFlow security rules (Phase 1 auth/invites + Phase 3 Control Center
+// + Phase 4 personal finance data).
 //
 // There are no Cloud Functions on the Firebase Spark (free) plan, so these
 // rules are the ONLY server-side enforcement in the app. Owner bootstrap and
@@ -75,7 +76,7 @@ service cloud.firestore {
       // Self-service profile edits only: no self-promotion, no touching
       // role/invitedBy/createdAt.
       allow update: if isSignedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'startingBalance']);
 
       // Owner-only: enable/disable a user's access (Phase 3). Can never be
       // used on the Owner's own doc -- there is exactly one Owner, and
@@ -85,6 +86,20 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['disabled']);
 
       allow delete: if false;
+
+      // Personal finance data (Phase 4). Strictly private -- path-based
+      // isolation, not even the Owner can read another user's subcollections
+      // (unlike the users/invites collections above, which are legitimately
+      // Owner-visible admin data).
+      match /incomeSources/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      match /expenses/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      match /merchants/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
     }
 
     match /invites/{inviteId} {
