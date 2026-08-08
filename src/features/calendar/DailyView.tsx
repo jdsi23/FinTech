@@ -10,6 +10,7 @@ import { ExpenseForm } from '../finance/ExpenseForm'
 import { incomeMeta, paymentMethodMeta } from '../../lib/paymentMethods'
 import { checkInWeekKey, getCheckInDates, suggestedPerCheckIn, suggestedStretchTarget } from '../goals/goalMath'
 import { clearCheckIn, logCheckIn, updateGoal } from '../goals/actions'
+import { sanitizeNumericInput } from '../../lib/numberInput'
 import type { ExpenseDoc, GoalDoc, IncomeDoc, OccurrenceStatus } from '../../types/firestore'
 
 const STATUS_LABEL: Record<OccurrenceStatus, string> = {
@@ -163,7 +164,9 @@ export function DailyView({
                       step="0.01"
                       placeholder="0.00"
                       value={checkInInputs[goal.id] ?? (logged !== undefined ? String(logged) : '')}
-                      onChange={(e) => setCheckInInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
+                      onChange={(e) =>
+                        setCheckInInputs((prev) => ({ ...prev, [goal.id]: sanitizeNumericInput(e.target.value) }))
+                      }
                       className="w-full rounded-md border border-slate-300 py-1 pl-5 pr-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </div>
@@ -234,7 +237,7 @@ export function DailyView({
                         type="number"
                         step="0.01"
                         value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
+                        onChange={(e) => setEditAmount(sanitizeNumericInput(e.target.value))}
                         className="w-full rounded-md border border-slate-300 py-1 pl-5 pr-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     </div>

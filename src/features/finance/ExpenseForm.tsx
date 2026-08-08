@@ -5,6 +5,7 @@ import { RecurringFields, type RecurringValue } from './RecurringFields'
 import { MerchantAutocomplete } from './MerchantAutocomplete'
 import { createExpense, updateExpense, ensureMerchant } from './actions'
 import { paymentMethodOptions } from '../../lib/paymentMethods'
+import { sanitizeNumericInput } from '../../lib/numberInput'
 import type { ExpenseDoc, PaymentMethod } from '../../types/firestore'
 
 const CATEGORY_SUGGESTIONS = [
@@ -116,7 +117,7 @@ export function ExpenseForm({ uid, itemId, initial, defaultDate, merchants, onDo
         required
         prefix="$"
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChange={(e) => setAmount(sanitizeNumericInput(e.target.value))}
       />
       <FormField label="Date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
       <SelectField

@@ -5,6 +5,7 @@ import { db } from '../../lib/firebase'
 import { useAuthStore } from '../../store/authStore'
 import { createInvite } from '../auth/actions'
 import { ErrorBanner, PrimaryButton } from '../../components/AuthLayout'
+import { sanitizeIntegerInput } from '../../lib/numberInput'
 import type { InviteDoc } from '../../types/firestore'
 
 interface InviteRow extends InviteDoc {
@@ -86,7 +87,7 @@ export function InviteManagePage() {
             min={1}
             max={365}
             value={expiresInDays}
-            onChange={(e) => setExpiresInDays(e.target.value)}
+            onChange={(e) => setExpiresInDays(sanitizeIntegerInput(e.target.value))}
             className="w-28 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
         </label>

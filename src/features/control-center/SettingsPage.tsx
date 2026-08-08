@@ -3,6 +3,7 @@ import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { useAuthStore } from '../../store/authStore'
 import { ErrorBanner, FormField, PrimaryButton } from '../../components/AuthLayout'
+import { sanitizeIntegerInput } from '../../lib/numberInput'
 
 export function SettingsPage() {
   const appMeta = useAuthStore((s) => s.appMeta)
@@ -57,7 +58,7 @@ export function SettingsPage() {
             min={1}
             max={365}
             value={expirationDays}
-            onChange={(e) => setExpirationDays(e.target.value)}
+            onChange={(e) => setExpirationDays(sanitizeIntegerInput(e.target.value))}
           />
         </div>
         <div className="w-40">

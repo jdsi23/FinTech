@@ -9,6 +9,7 @@ import { LogTodayButton } from './LogTodayButton'
 import { setStartingBalance } from '../finance/actions'
 import { getCheckInDates } from '../goals/goalMath'
 import { dateKey } from '../../lib/recurrence'
+import { sanitizeNumericInput } from '../../lib/numberInput'
 import type { ExpenseDoc, GoalDoc, IncomeDoc, MerchantDoc } from '../../types/firestore'
 
 export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -112,7 +113,7 @@ export function CalendarPage() {
                 type="number"
                 step="0.01"
                 value={balanceInput}
-                onChange={(e) => setBalanceInput(e.target.value)}
+                onChange={(e) => setBalanceInput(sanitizeNumericInput(e.target.value, true))}
                 className="w-full rounded-md border border-slate-300 py-1 pl-5 pr-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
             </div>

@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { ErrorBanner, FormField, PrimaryButton, SecondaryButton } from '../../components/AuthLayout'
 import { RecurringFields, type RecurringValue } from './RecurringFields'
 import { createIncome, updateIncome } from './actions'
+import { sanitizeNumericInput } from '../../lib/numberInput'
 import type { IncomeDoc } from '../../types/firestore'
 
 interface Props {
@@ -82,7 +83,7 @@ export function IncomeForm({ uid, itemId, initial, defaultDate, onDone, onCancel
         required
         prefix="$"
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChange={(e) => setAmount(sanitizeNumericInput(e.target.value))}
       />
       <FormField label="Deposit date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
       <FormField

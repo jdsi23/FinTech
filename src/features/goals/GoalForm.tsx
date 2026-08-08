@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { ErrorBanner, FormField, PrimaryButton, SecondaryButton, SelectField } from '../../components/AuthLayout'
 import { createGoal, updateGoal } from './actions'
 import { WEEKDAY_LABELS } from '../calendar/CalendarPage'
+import { sanitizeNumericInput } from '../../lib/numberInput'
 import type { Frequency, GoalDoc, GoalType, SavingsStrategy } from '../../types/firestore'
 
 const CATEGORY_SUGGESTIONS = [
@@ -159,7 +160,7 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
         step="0.01"
         prefix="$"
         value={initialSaved}
-        onChange={(e) => setInitialSaved(e.target.value)}
+        onChange={(e) => setInitialSaved(sanitizeNumericInput(e.target.value))}
       />
       <FormField
         label="Target amount"
@@ -169,7 +170,7 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
         required
         prefix="$"
         value={targetAmount}
-        onChange={(e) => setTargetAmount(e.target.value)}
+        onChange={(e) => setTargetAmount(sanitizeNumericInput(e.target.value))}
       />
       <FormField
         label="Target date"

@@ -1,4 +1,5 @@
 import { SelectField } from '../../components/AuthLayout'
+import { sanitizeIntegerInput } from '../../lib/numberInput'
 import type { Frequency } from '../../types/firestore'
 
 export interface RecurringValue {
@@ -70,9 +71,10 @@ export function RecurringFields({
                 type="number"
                 min={1}
                 value={value.customIntervalDays ?? ''}
-                onChange={(e) =>
-                  onChange({ ...value, customIntervalDays: e.target.value === '' ? undefined : Number(e.target.value) })
-                }
+                onChange={(e) => {
+                  const cleaned = sanitizeIntegerInput(e.target.value)
+                  onChange({ ...value, customIntervalDays: cleaned === '' ? undefined : Number(cleaned) })
+                }}
                 className="w-20 rounded-md border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
             </label>
