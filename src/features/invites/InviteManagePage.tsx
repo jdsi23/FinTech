@@ -26,7 +26,7 @@ export function inviteStatus(invite: InviteDoc): { label: string; className: str
 export function InviteManagePage() {
   const firebaseUser = useAuthStore((s) => s.firebaseUser)
   const [invites, setInvites] = useState<InviteRow[]>([])
-  const [expiresInDays, setExpiresInDays] = useState(7)
+  const [expiresInDays, setExpiresInDays] = useState('7')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -41,7 +41,7 @@ export function InviteManagePage() {
   }, [])
 
   useEffect(() => {
-    if (defaultExpirationDays) setExpiresInDays(defaultExpirationDays)
+    if (defaultExpirationDays) setExpiresInDays(String(defaultExpirationDays))
   }, [defaultExpirationDays])
 
   async function handleCreate(e: React.FormEvent) {
@@ -50,7 +50,7 @@ export function InviteManagePage() {
     setError(null)
     setBusy(true)
     try {
-      const expiresAt = dayjs().add(expiresInDays, 'day').valueOf()
+      const expiresAt = dayjs().add(Number(expiresInDays) || 1, 'day').valueOf()
       await createInvite(firebaseUser.uid, 'user', expiresAt)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create invite.')
@@ -86,7 +86,7 @@ export function InviteManagePage() {
             min={1}
             max={365}
             value={expiresInDays}
-            onChange={(e) => setExpiresInDays(Number(e.target.value))}
+            onChange={(e) => setExpiresInDays(e.target.value)}
             className="w-28 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
         </label>

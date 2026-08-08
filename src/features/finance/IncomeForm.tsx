@@ -16,7 +16,7 @@ interface Props {
 
 export function IncomeForm({ uid, itemId, initial, defaultDate, onDone, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? '')
-  const [amount, setAmount] = useState(initial?.amount ?? 0)
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [date, setDate] = useState(dayjs(initial?.date ?? defaultDate).format('YYYY-MM-DD'))
   const [depositAccount, setDepositAccount] = useState(initial?.depositAccount ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -37,7 +37,7 @@ export function IncomeForm({ uid, itemId, initial, defaultDate, onDone, onCancel
     try {
       const base: Omit<IncomeDoc, 'createdAt'> = {
         name: name.trim(),
-        amount: Number(amount),
+        amount: Number(amount) || 0,
         date: dayjs(date, 'YYYY-MM-DD').valueOf(),
         depositAccount: depositAccount.trim(),
         notes: notes.trim(),
@@ -80,8 +80,9 @@ export function IncomeForm({ uid, itemId, initial, defaultDate, onDone, onCancel
         min={0}
         step="0.01"
         required
+        prefix="$"
         value={amount}
-        onChange={(e) => setAmount(Number(e.target.value))}
+        onChange={(e) => setAmount(e.target.value)}
       />
       <FormField label="Deposit date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
       <FormField

@@ -34,8 +34,8 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
   const [category, setCategory] = useState(initial?.category ?? '')
   const [icon, setIcon] = useState(initial?.icon ?? '🎯')
   const [color, setColor] = useState(initial?.color ?? COLOR_PALETTE[0])
-  const [initialSaved, setInitialSaved] = useState(initial?.initialSaved ?? 0)
-  const [targetAmount, setTargetAmount] = useState(initial?.targetAmount ?? 0)
+  const [initialSaved, setInitialSaved] = useState(initial ? String(initial.initialSaved) : '')
+  const [targetAmount, setTargetAmount] = useState(initial ? String(initial.targetAmount) : '')
   const [targetDate, setTargetDate] = useState(
     dayjs(initial?.targetDate ?? dayjs().add(3, 'month').valueOf()).format('YYYY-MM-DD'),
   )
@@ -81,8 +81,8 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
         category: category.trim(),
         icon: icon.trim() || '🎯',
         color,
-        initialSaved: Number(initialSaved),
-        targetAmount: Number(targetAmount),
+        initialSaved: Number(initialSaved) || 0,
+        targetAmount: Number(targetAmount) || 0,
         targetDate: dayjs(targetDate, 'YYYY-MM-DD').valueOf(),
         notes: notes.trim(),
         strategy,
@@ -157,8 +157,9 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
         type="number"
         min={0}
         step="0.01"
+        prefix="$"
         value={initialSaved}
-        onChange={(e) => setInitialSaved(Number(e.target.value))}
+        onChange={(e) => setInitialSaved(e.target.value)}
       />
       <FormField
         label="Target amount"
@@ -166,8 +167,9 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
         min={0}
         step="0.01"
         required
+        prefix="$"
         value={targetAmount}
-        onChange={(e) => setTargetAmount(Number(e.target.value))}
+        onChange={(e) => setTargetAmount(e.target.value)}
       />
       <FormField
         label="Target date"

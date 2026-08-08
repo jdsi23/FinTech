@@ -33,7 +33,7 @@ interface Props {
 export function ExpenseForm({ uid, itemId, initial, defaultDate, merchants, onDone, onCancel }: Props) {
   const [merchant, setMerchant] = useState(initial?.merchant ?? '')
   const [category, setCategory] = useState(initial?.category ?? '')
-  const [amount, setAmount] = useState(initial?.amount ?? 0)
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [date, setDate] = useState(dayjs(initial?.date ?? defaultDate).format('YYYY-MM-DD'))
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initial?.paymentMethod ?? 'debit')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -56,7 +56,7 @@ export function ExpenseForm({ uid, itemId, initial, defaultDate, merchants, onDo
       const base: Omit<ExpenseDoc, 'createdAt'> = {
         merchant: merchant.trim(),
         category: category.trim(),
-        amount: Number(amount),
+        amount: Number(amount) || 0,
         date: dayjs(date, 'YYYY-MM-DD').valueOf(),
         paymentMethod,
         notes: notes.trim(),
@@ -114,8 +114,9 @@ export function ExpenseForm({ uid, itemId, initial, defaultDate, merchants, onDo
         min={0}
         step="0.01"
         required
+        prefix="$"
         value={amount}
-        onChange={(e) => setAmount(Number(e.target.value))}
+        onChange={(e) => setAmount(e.target.value)}
       />
       <FormField label="Date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
       <SelectField

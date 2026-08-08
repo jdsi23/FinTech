@@ -104,13 +104,18 @@ export function CalendarPage() {
         <div className="flex items-center gap-4">
           <form onSubmit={handleSaveBalance} className="flex items-center gap-2 text-sm">
             <span className="text-slate-500 dark:text-slate-400">Starting balance</span>
-            <input
-              type="number"
-              step="0.01"
-              value={balanceInput}
-              onChange={(e) => setBalanceInput(e.target.value)}
-              className="w-28 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            />
+            <div className="relative w-28">
+              <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-500 dark:text-slate-400">
+                $
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                value={balanceInput}
+                onChange={(e) => setBalanceInput(e.target.value)}
+                className="w-full rounded-md border border-slate-300 py-1 pl-5 pr-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </div>
             <button type="submit" className="text-indigo-600 hover:underline dark:text-indigo-400">
               Save
             </button>

@@ -69,8 +69,10 @@ export function RecurringFields({
               <input
                 type="number"
                 min={1}
-                value={value.customIntervalDays ?? 1}
-                onChange={(e) => onChange({ ...value, customIntervalDays: Number(e.target.value) })}
+                value={value.customIntervalDays ?? ''}
+                onChange={(e) =>
+                  onChange({ ...value, customIntervalDays: e.target.value === '' ? undefined : Number(e.target.value) })
+                }
                 className="w-20 rounded-md border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
             </label>

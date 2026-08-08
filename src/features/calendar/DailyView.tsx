@@ -54,9 +54,9 @@ export function DailyView({
   const weekKey = checkInWeekKey(date)
 
   const [editingKey, setEditingKey] = useState<string | null>(null)
-  const [editAmount, setEditAmount] = useState(0)
+  const [editAmount, setEditAmount] = useState('')
   const [addingKind, setAddingKind] = useState<'income' | 'expense' | null>(null)
-  const [checkInInputs, setCheckInInputs] = useState<Record<string, number>>({})
+  const [checkInInputs, setCheckInInputs] = useState<Record<string, string>>({})
 
   function kindOf(entry: OccurrenceEntry): 'incomeSources' | 'expenses' {
     return entry.kind === 'income' ? 'incomeSources' : 'expenses'
@@ -80,7 +80,7 @@ export function DailyView({
   async function confirmAmount(entry: OccurrenceEntry) {
     await setOccurrenceOverride(uid, kindOf(entry), entry.id, dateKey(entry.date), {
       status: 'modified',
-      actualAmount: editAmount,
+      actualAmount: Number(editAmount) || 0,
     })
     setEditingKey(null)
   }
@@ -126,7 +126,7 @@ export function DailyView({
                 ? suggestedStretchTarget(goal, date)
                 : null
 
-            const amountValue = checkInInputs[goal.id] ?? logged ?? 0
+            const amountValue = Number(checkInInputs[goal.id] ?? logged ?? 0) || 0
 
             return (
               <div key={goal.id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
@@ -154,14 +154,19 @@ export function DailyView({
                   </p>
                 )}
                 <div className="mt-2 flex items-center gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Amount saved"
-                    value={checkInInputs[goal.id] ?? logged ?? ''}
-                    onChange={(e) => setCheckInInputs((prev) => ({ ...prev, [goal.id]: Number(e.target.value) }))}
-                    className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                  />
+                  <div className="relative w-28">
+                    <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-sm text-slate-500 dark:text-slate-400">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={checkInInputs[goal.id] ?? (logged !== undefined ? String(logged) : '')}
+                      onChange={(e) => setCheckInInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))}
+                      className="w-full rounded-md border border-slate-300 py-1 pl-5 pr-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </div>
                   <button
                     onClick={() => logCheckIn(uid, goal.id, weekKey, amountValue)}
                     className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
@@ -221,13 +226,18 @@ export function DailyView({
 
                 {editingKey === key ? (
                   <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editAmount}
-                      onChange={(e) => setEditAmount(Number(e.target.value))}
-                      className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
+                    <div className="relative w-24">
+                      <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-sm text-slate-500 dark:text-slate-400">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="w-full rounded-md border border-slate-300 py-1 pl-5 pr-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                      />
+                    </div>
                     <button onClick={() => confirmAmount(entry)} className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
                       Confirm
                     </button>
@@ -240,7 +250,7 @@ export function DailyView({
                     <button
                       onClick={() => {
                         setEditingKey(key)
-                        setEditAmount(entry.amount)
+                        setEditAmount(String(entry.amount))
                       }}
                       className="text-indigo-600 hover:underline dark:text-indigo-400"
                     >

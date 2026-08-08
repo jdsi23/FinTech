@@ -7,14 +7,14 @@ import { ErrorBanner, FormField, PrimaryButton } from '../../components/AuthLayo
 export function SettingsPage() {
   const appMeta = useAuthStore((s) => s.appMeta)
   const [appName, setAppName] = useState('ForecastFlow')
-  const [expirationDays, setExpirationDays] = useState(7)
+  const [expirationDays, setExpirationDays] = useState('7')
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (appMeta?.appName) setAppName(appMeta.appName)
-    if (appMeta?.defaultInviteExpirationDays) setExpirationDays(appMeta.defaultInviteExpirationDays)
+    if (appMeta?.defaultInviteExpirationDays) setExpirationDays(String(appMeta.defaultInviteExpirationDays))
   }, [appMeta])
 
   async function handleSave(e: React.FormEvent) {
@@ -25,7 +25,7 @@ export function SettingsPage() {
     try {
       await updateDoc(doc(db, 'meta', 'app'), {
         appName: appName.trim() || 'ForecastFlow',
-        defaultInviteExpirationDays: expirationDays,
+        defaultInviteExpirationDays: Number(expirationDays) || 1,
       })
       setSaved(true)
     } catch (err) {
@@ -57,7 +57,7 @@ export function SettingsPage() {
             min={1}
             max={365}
             value={expirationDays}
-            onChange={(e) => setExpirationDays(Number(e.target.value))}
+            onChange={(e) => setExpirationDays(e.target.value)}
           />
         </div>
         <div className="w-40">
