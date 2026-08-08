@@ -5,21 +5,30 @@ export function dateKey(ms: number): string {
   return dayjs(ms).format('YYYY-MM-DD')
 }
 
-function advance(ms: number, frequency: Frequency, customIntervalDays?: number): number {
-  const d = dayjs(ms)
+/** The Nth occurrence after `anchor`, computed directly from the anchor
+ * rather than by repeatedly advancing the previous occurrence. This matters
+ * for month-based frequencies: Day.js's add(1,'month') clamps a day that
+ * doesn't exist in the target month (e.g. Jan 31 -> Feb 28), and stepping
+ * cumulatively from that clamped result would drift the day-of-month down
+ * permanently (Feb 28 -> Mar 28 instead of Mar 31). Computing every
+ * occurrence from the original anchor makes each month re-attempt the
+ * anchor's day independently, so a short month only clamps that one
+ * occurrence. Week/day-based frequencies are unaffected either way. */
+function occurrenceAt(anchor: number, index: number, frequency: Frequency, customIntervalDays?: number): number {
+  const d = dayjs(anchor)
   switch (frequency) {
     case 'weekly':
-      return d.add(1, 'week').valueOf()
+      return d.add(index, 'week').valueOf()
     case 'biweekly':
-      return d.add(2, 'week').valueOf()
+      return d.add(index * 2, 'week').valueOf()
     case 'monthly':
-      return d.add(1, 'month').valueOf()
+      return d.add(index, 'month').valueOf()
     case 'quarterly':
-      return d.add(3, 'month').valueOf()
+      return d.add(index * 3, 'month').valueOf()
     case 'yearly':
-      return d.add(1, 'year').valueOf()
+      return d.add(index, 'year').valueOf()
     case 'custom':
-      return d.add(Math.max(1, customIntervalDays ?? 1), 'day').valueOf()
+      return d.add(index * Math.max(1, customIntervalDays ?? 1), 'day').valueOf()
   }
 }
 
@@ -55,12 +64,12 @@ export function getOccurrenceDates(item: RecurringLike, rangeStart: number, rang
   if (!item.recurring || item.recurringEnabled === false) {
     if (inRange(item.date)) dates.add(item.date)
   } else if (item.frequency) {
+    let index = 0
     let current = item.date
-    let iterations = 0
-    while (current <= rangeEnd && iterations < MAX_ITERATIONS) {
+    while (current <= rangeEnd && index < MAX_ITERATIONS) {
       if (inRange(current)) dates.add(current)
-      current = advance(current, item.frequency, item.customIntervalDays)
-      iterations++
+      index++
+      current = occurrenceAt(item.date, index, item.frequency, item.customIntervalDays)
     }
   }
 

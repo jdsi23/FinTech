@@ -8,7 +8,7 @@ import { clearOccurrenceOverride, setOccurrenceOverride } from '../finance/actio
 import { IncomeForm } from '../finance/IncomeForm'
 import { ExpenseForm } from '../finance/ExpenseForm'
 import { incomeMeta, paymentMethodMeta } from '../../lib/paymentMethods'
-import { checkInWeekKey, getCheckInDates, suggestedStretchTarget, suggestedWeekly } from '../goals/goalMath'
+import { checkInWeekKey, getCheckInDates, suggestedPerCheckIn, suggestedStretchTarget } from '../goals/goalMath'
 import { clearCheckIn, logCheckIn, updateGoal } from '../goals/actions'
 import type { ExpenseDoc, GoalDoc, IncomeDoc, OccurrenceStatus } from '../../types/firestore'
 
@@ -117,10 +117,10 @@ export function DailyView({
     <Modal title={dayjs(date).format('dddd, MMMM D, YYYY')} onClose={onClose}>
       {goalsWithCheckIn.length > 0 && (
         <div className="mb-4 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400">Weekly Goal Check-ins</h3>
+          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400">Goal Check-ins</h3>
           {goalsWithCheckIn.map((goal) => {
             const logged = goal.checkIns?.[weekKey]
-            const target = suggestedWeekly(goal, date)
+            const target = suggestedPerCheckIn(goal, date)
             const stretch =
               goal.strategy === 'slightly_early' && goal.evenSoonerEnabled
                 ? suggestedStretchTarget(goal, date)
@@ -147,10 +147,10 @@ export function DailyView({
                     </label>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Target: ${target.toFixed(2)}/week</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Target this check-in: ${target.toFixed(2)}</p>
                 {stretch !== null && (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Suggested stretch target: ${stretch.toFixed(2)}/week
+                    Suggested stretch target: ${stretch.toFixed(2)}
                   </p>
                 )}
                 <div className="mt-2 flex items-center gap-2">

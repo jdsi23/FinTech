@@ -114,9 +114,19 @@ export interface GoalDoc {
   strategy: SavingsStrategy
   // Only meaningful when strategy === 'slightly_early'.
   evenSoonerEnabled?: boolean
-  // When weekly check-ins start counting from (defaults to createdAt).
+  // Check-in schedule (Phase 7). Absent checkInFrequency = 'weekly'; absent/
+  // empty checkInDays = derive a single day from startDate's weekday -- both
+  // reproduce the original single-weekly-check-in behavior exactly.
+  checkInFrequency?: Frequency // only 'weekly' | 'biweekly' | 'monthly' are offered in the UI
+  checkInDays?: number[] // 0=Sun..6=Sat; only meaningful when checkInFrequency is weekly/biweekly
+  // Absent/true = adaptive (suggested amount recalculates from actual
+  // progress, folding in any missed check-ins). false = flat/steady pace
+  // computed once from the goal's original numbers, ignoring misses.
+  checkInRolloverEnabled?: boolean
+  // First check-in date; also the day-of-week (weekly/biweekly) or
+  // day-of-month (monthly) anchor. Defaults to createdAt.
   startDate: number
-  // Keyed by ISO week-start date (YYYY-MM-DD) -> amount logged that week.
+  // Keyed by the exact ISO occurrence date (YYYY-MM-DD) -> amount logged.
   checkIns: Record<string, number>
   createdAt: number
 }

@@ -11,7 +11,7 @@ import { getCheckInDates } from '../goals/goalMath'
 import { dateKey } from '../../lib/recurrence'
 import type { ExpenseDoc, GoalDoc, IncomeDoc, MerchantDoc } from '../../types/firestore'
 
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export function CalendarPage() {
   const uid = useAuthStore((s) => s.firebaseUser?.uid)

@@ -2,6 +2,8 @@ import dayjs from 'dayjs'
 import { dateKey, getOccurrenceDates } from '../../lib/recurrence'
 import type { GoalDoc } from '../../types/firestore'
 
+const MAX_CHECKIN_ITERATIONS = 1000
+
 /** Always computed, never stored — initialSaved + every logged check-in. */
 export function currentSaved(goal: GoalDoc): number {
   const logged = Object.values(goal.checkIns ?? {}).reduce((sum, v) => sum + v, 0)
@@ -46,7 +48,7 @@ export function evenSoonerStretchPercent(goal: GoalDoc, today: number): number {
 
 /** Only meaningful for strategy === 'slightly_early' with evenSoonerEnabled. */
 export function suggestedStretchTarget(goal: GoalDoc, today: number): number {
-  const base = suggestedWeekly(goal, today)
+  const base = suggestedPerCheckIn(goal, today)
   const pct = evenSoonerStretchPercent(goal, today)
   return base * (1 + pct / 100)
 }
@@ -70,12 +72,73 @@ export function projectedCompletionDate(goal: GoalDoc, today: number): number | 
   return dayjs(today).add(weeksToFinish, 'week').valueOf()
 }
 
-/** Weekly check-in dates within [rangeStart, rangeEnd], reusing the same
- * weekly-stepping logic as recurring income/expenses rather than a second
- * date generator. Stops once the goal is already fully funded. */
+/** Weekly/biweekly check-in dates for one or more selected weekdays,
+ * stepping a week (or two) at a time from startDate's week and emitting
+ * every selected weekday per step -- generalizes the single-day case
+ * (checkInDays absent/empty) to multiple check-ins per week. */
+function weeklyCheckInDates(goal: GoalDoc, rangeStart: number, rangeEnd: number): number[] {
+  const intervalWeeks = goal.checkInFrequency === 'biweekly' ? 2 : 1
+  const days = goal.checkInDays?.length ? goal.checkInDays : [dayjs(goal.startDate).day()]
+  const dates: number[] = []
+
+  let weekCursor = dayjs(goal.startDate).startOf('week')
+  let iterations = 0
+  while (weekCursor.valueOf() <= rangeEnd && iterations < MAX_CHECKIN_ITERATIONS) {
+    for (const day of days) {
+      const ms = weekCursor.day(day).valueOf()
+      if (ms >= goal.startDate && ms >= rangeStart && ms <= rangeEnd) dates.push(ms)
+    }
+    weekCursor = weekCursor.add(intervalWeeks, 'week')
+    iterations++
+  }
+
+  return dates.sort((a, b) => a - b)
+}
+
+/** Every scheduled check-in date within [rangeStart, rangeEnd], regardless
+ * of whether the goal is already fully funded -- used both for live
+ * scheduling (via getCheckInDates) and for the flat/steady baseline in
+ * suggestedPerCheckIn, which needs the full start-to-target schedule. */
+function rawCheckInDates(goal: GoalDoc, rangeStart: number, rangeEnd: number): number[] {
+  if (goal.checkInFrequency === 'monthly') {
+    return getOccurrenceDates({ date: goal.startDate, recurring: true, frequency: 'monthly' }, rangeStart, rangeEnd)
+  }
+  return weeklyCheckInDates(goal, rangeStart, rangeEnd)
+}
+
+/** Check-in dates within [rangeStart, rangeEnd]. Stops once the goal is
+ * already fully funded. */
 export function getCheckInDates(goal: GoalDoc, rangeStart: number, rangeEnd: number): number[] {
   if (currentSaved(goal) >= goal.targetAmount) return []
-  return getOccurrenceDates({ date: goal.startDate, recurring: true, frequency: 'weekly' }, rangeStart, rangeEnd)
+  return rawCheckInDates(goal, rangeStart, rangeEnd)
+}
+
+/** The amount needed for one specific check-in occurrence -- the
+ * per-occurrence generalization of suggestedWeekly, aware of actual
+ * cadence/selected days (used by DailyView for the loggable amount;
+ * suggestedWeekly stays a simple weekly-pace summary for GoalCard/Reports).
+ *
+ * Rollover enabled (default): adaptive, same philosophy as suggestedWeekly
+ * -- remaining amount divided across the actual scheduled occurrences
+ * between today and the strategy-adjusted target date, so a missed
+ * check-in folds into every future one automatically without being
+ * tracked explicitly.
+ *
+ * Rollover disabled: flat/steady -- computed once from the goal's original
+ * numbers (initialSaved, full start-to-target schedule) and never
+ * recalculated from progress, so missing a check-in doesn't raise future
+ * amounts; the goal just falls behind schedule instead. */
+export function suggestedPerCheckIn(goal: GoalDoc, today: number): number {
+  if (goal.checkInRolloverEnabled === false) {
+    const total = rawCheckInDates(goal, goal.startDate, goal.targetDate).length || 1
+    return (goal.targetAmount - goal.initialSaved) / total
+  }
+
+  const remaining = Math.max(0, goal.targetAmount - currentSaved(goal))
+  const bufferWeeks = goal.strategy === 'slightly_early' ? 3 : goal.strategy === 'asap' ? 6 : 0
+  const adjustedTargetDate = dayjs(goal.targetDate).subtract(bufferWeeks, 'week').valueOf()
+  const upcoming = Math.max(1, rawCheckInDates(goal, today, Math.max(today, adjustedTargetDate)).length)
+  return remaining / upcoming
 }
 
 export function checkInWeekKey(date: number): string {

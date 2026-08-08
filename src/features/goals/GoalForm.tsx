@@ -2,7 +2,8 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import { ErrorBanner, FormField, PrimaryButton, SecondaryButton, SelectField } from '../../components/AuthLayout'
 import { createGoal, updateGoal } from './actions'
-import type { GoalDoc, GoalType, SavingsStrategy } from '../../types/firestore'
+import { WEEKDAY_LABELS } from '../calendar/CalendarPage'
+import type { Frequency, GoalDoc, GoalType, SavingsStrategy } from '../../types/firestore'
 
 const CATEGORY_SUGGESTIONS = [
   'Emergency Fund',
@@ -41,8 +42,23 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [strategy, setStrategy] = useState<SavingsStrategy>(initial?.strategy ?? 'on_time')
   const [evenSoonerEnabled, setEvenSoonerEnabled] = useState(initial?.evenSoonerEnabled ?? false)
+  const [startDate, setStartDate] = useState(dayjs(initial?.startDate ?? Date.now()).format('YYYY-MM-DD'))
+  const [checkInFrequency, setCheckInFrequency] = useState<Frequency>(initial?.checkInFrequency ?? 'weekly')
+  const [checkInDays, setCheckInDays] = useState<number[]>(
+    initial?.checkInDays?.length ? initial.checkInDays : [dayjs(initial?.startDate ?? Date.now()).day()],
+  )
+  const [rolloverEnabled, setRolloverEnabled] = useState(initial?.checkInRolloverEnabled ?? true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function toggleCheckInDay(day: number) {
+    setCheckInDays((prev) => {
+      if (prev.includes(day)) {
+        return prev.length > 1 ? prev.filter((d) => d !== day) : prev
+      }
+      return [...prev, day].sort()
+    })
+  }
 
   function handleEvenSoonerChange(checked: boolean) {
     if (!checked && itemId) {
@@ -71,7 +87,10 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
         notes: notes.trim(),
         strategy,
         evenSoonerEnabled: strategy === 'slightly_early' ? evenSoonerEnabled : false,
-        startDate: initial?.startDate ?? Date.now(),
+        startDate: dayjs(startDate, 'YYYY-MM-DD').valueOf(),
+        checkInFrequency,
+        checkInDays,
+        checkInRolloverEnabled: rolloverEnabled,
         checkIns: initial?.checkIns ?? {},
       }
       if (itemId) {
@@ -157,6 +176,68 @@ export function GoalForm({ uid, itemId, initial, onDone, onCancel }: Props) {
         value={targetDate}
         onChange={(e) => setTargetDate(e.target.value)}
       />
+
+      <FormField
+        label="First check-in date"
+        type="date"
+        required
+        value={startDate}
+        onChange={(e) => setStartDate(e.target.value)}
+      />
+
+      <SelectField
+        label="Check-in frequency"
+        value={checkInFrequency}
+        onChange={(e) => setCheckInFrequency(e.target.value as Frequency)}
+      >
+        <option value="weekly">Weekly</option>
+        <option value="biweekly">Biweekly</option>
+        <option value="monthly">Once a month</option>
+      </SelectField>
+
+      {checkInFrequency === 'monthly' ? (
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+          Check-ins occur on the {dayjs(startDate, 'YYYY-MM-DD').format('Do')} of each month (falls back to the
+          month's last day when it's shorter than that).
+        </p>
+      ) : (
+        <div className="mb-3">
+          <span className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Check-in days {checkInDays.length > 1 && '(saving on multiple days sums toward your total)'}
+          </span>
+          <div className="flex gap-1">
+            {WEEKDAY_LABELS.map((label, day) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => toggleCheckInDay(day)}
+                className={`h-8 w-8 rounded-full text-xs font-medium ${
+                  checkInDays.includes(day)
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                }`}
+              >
+                {label[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <label className="mb-3 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+        <input
+          type="checkbox"
+          checked={rolloverEnabled}
+          onChange={(e) => setRolloverEnabled(e.target.checked)}
+          className="h-4 w-4 rounded border-slate-300"
+        />
+        Roll missed check-ins into future targets
+      </label>
+      <p className="-mt-2 mb-3 text-xs text-slate-500 dark:text-slate-400">
+        {rolloverEnabled
+          ? 'Missing a check-in raises the suggested amount for future ones to stay on track.'
+          : 'The suggested amount stays fixed regardless of missed check-ins -- the goal may just fall behind schedule.'}
+      </p>
 
       <SelectField
         label="Savings strategy"
