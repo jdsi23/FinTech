@@ -8,7 +8,9 @@ import { clearOccurrenceOverride, setOccurrenceOverride } from '../finance/actio
 import { IncomeForm } from '../finance/IncomeForm'
 import { ExpenseForm } from '../finance/ExpenseForm'
 import { incomeMeta, paymentMethodMeta } from '../../lib/paymentMethods'
-import type { ExpenseDoc, IncomeDoc, OccurrenceStatus } from '../../types/firestore'
+import { checkInWeekKey, getCheckInDates, suggestedStretchTarget, suggestedWeekly } from '../goals/goalMath'
+import { logCheckIn } from '../goals/actions'
+import type { ExpenseDoc, GoalDoc, IncomeDoc, OccurrenceStatus } from '../../types/firestore'
 
 const STATUS_LABEL: Record<OccurrenceStatus, string> = {
   scheduled: 'Scheduled',
@@ -34,6 +36,7 @@ export function DailyView({
   incomeSources,
   expenses,
   merchants,
+  goals,
   onClose,
 }: {
   uid: string
@@ -41,15 +44,19 @@ export function DailyView({
   incomeSources: (IncomeDoc & { id: string })[]
   expenses: (ExpenseDoc & { id: string })[]
   merchants: { id: string; name: string }[]
+  goals: (GoalDoc & { id: string })[]
   onClose: () => void
 }) {
   const dayStart = dayjs(date).startOf('day').valueOf()
   const dayEnd = dayjs(date).endOf('day').valueOf()
   const entries = buildOccurrenceEntries(incomeSources, expenses, dayStart, dayEnd)
+  const goalsWithCheckIn = goals.filter((g) => getCheckInDates(g, dayStart, dayEnd).length > 0)
+  const weekKey = checkInWeekKey(date)
 
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editAmount, setEditAmount] = useState(0)
   const [addingKind, setAddingKind] = useState<'income' | 'expense' | null>(null)
+  const [checkInInputs, setCheckInInputs] = useState<Record<string, number>>({})
 
   function kindOf(entry: OccurrenceEntry): 'incomeSources' | 'expenses' {
     return entry.kind === 'income' ? 'incomeSources' : 'expenses'
@@ -98,7 +105,60 @@ export function DailyView({
 
   return (
     <Modal title={dayjs(date).format('dddd, MMMM D, YYYY')} onClose={onClose}>
-      {entries.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">Nothing scheduled.</p>}
+      {goalsWithCheckIn.length > 0 && (
+        <div className="mb-4 space-y-3">
+          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400">Weekly Goal Check-ins</h3>
+          {goalsWithCheckIn.map((goal) => {
+            const logged = goal.checkIns?.[weekKey]
+            const target = suggestedWeekly(goal, date)
+            const stretch =
+              goal.strategy === 'slightly_early' && goal.evenSoonerEnabled
+                ? suggestedStretchTarget(goal, date)
+                : null
+
+            return (
+              <div key={goal.id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span>{goal.icon}</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{goal.name}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Target: ${target.toFixed(2)}/week</p>
+                {stretch !== null && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Suggested stretch target: ${stretch.toFixed(2)}/week
+                  </p>
+                )}
+                {logged !== undefined ? (
+                  <p className="mt-2 text-sm text-green-700 dark:text-green-400">Logged: ${logged.toFixed(2)}</p>
+                ) : (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Amount saved"
+                      value={checkInInputs[goal.id] ?? ''}
+                      onChange={(e) =>
+                        setCheckInInputs((prev) => ({ ...prev, [goal.id]: Number(e.target.value) }))
+                      }
+                      className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                    <button
+                      onClick={() => logCheckIn(uid, goal.id, weekKey, checkInInputs[goal.id] ?? 0)}
+                      className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+                    >
+                      Log
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {entries.length === 0 && goalsWithCheckIn.length === 0 && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">Nothing scheduled.</p>
+      )}
 
       <ul className="space-y-3">
         {entries.map((entry) => {

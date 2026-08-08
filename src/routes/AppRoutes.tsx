@@ -8,9 +8,9 @@ import { AccessDisabledPage } from '../features/auth/AccessDisabledPage'
 import { JoinPage } from '../features/invites/JoinPage'
 import { InviteManagePage } from '../features/invites/InviteManagePage'
 import { AppShell } from '../components/AppShell'
-import { Dashboard } from '../pages/Dashboard'
+import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { CalendarPage } from '../features/calendar/CalendarPage'
-import { GoalsPage } from '../pages/Goals'
+import { GoalsPage } from '../features/goals/GoalsPage'
 import { AccountSecurityPage } from '../features/biometrics/AccountSecurityPage'
 import { BiometricUnlockPage } from '../features/biometrics/BiometricUnlockPage'
 import { useBiometricStore } from '../features/biometrics/biometricStore'
@@ -55,7 +55,7 @@ function Protected() {
   return (
     <AppShell role={role}>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<DashboardPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/account/security" element={<AccountSecurityPage />} />

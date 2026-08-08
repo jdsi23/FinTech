@@ -1,29 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { collection, onSnapshot } from 'firebase/firestore'
-import { db } from '../../lib/firebase'
 import { useAuthStore } from '../../store/authStore'
+import { useCollection } from '../../lib/useCollection'
 import { buildOccurrenceEntries, computeBalanceByDay, groupByDay } from './calendarMath'
 import { DailyView } from './DailyView'
 import { ManageItemsList } from './ManageItemsList'
 import { LogTodayButton } from './LogTodayButton'
 import { setStartingBalance } from '../finance/actions'
-import type { ExpenseDoc, IncomeDoc, MerchantDoc } from '../../types/firestore'
+import { getCheckInDates } from '../goals/goalMath'
+import { dateKey } from '../../lib/recurrence'
+import type { ExpenseDoc, GoalDoc, IncomeDoc, MerchantDoc } from '../../types/firestore'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function useCollection<T>(uid: string | undefined, path: string): (T & { id: string })[] {
-  const [items, setItems] = useState<(T & { id: string })[]>([])
-
-  useEffect(() => {
-    if (!uid) return
-    return onSnapshot(collection(db, 'users', uid, path), (snap) => {
-      setItems(snap.docs.map((d) => ({ id: d.id, ...(d.data() as T) })))
-    })
-  }, [uid, path])
-
-  return items
-}
 
 export function CalendarPage() {
   const uid = useAuthStore((s) => s.firebaseUser?.uid)
@@ -32,6 +20,7 @@ export function CalendarPage() {
   const incomeSources = useCollection<IncomeDoc>(uid, 'incomeSources')
   const expenses = useCollection<ExpenseDoc>(uid, 'expenses')
   const merchants = useCollection<MerchantDoc>(uid, 'merchants')
+  const goals = useCollection<GoalDoc>(uid, 'goals')
 
   const [monthStart, setMonthStart] = useState(() => dayjs().startOf('month').valueOf())
   const [selectedDate, setSelectedDate] = useState<number | null>(null)
@@ -59,8 +48,18 @@ export function CalendarPage() {
     const entriesByDay = groupByDay(visibleEntries)
     const balances = computeBalanceByDay(allEntries, dayKeys, startingBalance)
 
-    return { dayKeys, entriesByDay, balances }
-  }, [monthStart, incomeSources, expenses, startingBalance])
+    const checkInsByDay = new Map<string, (GoalDoc & { id: string })[]>()
+    for (const goal of goals) {
+      for (const d of getCheckInDates(goal, gridStart, gridEnd)) {
+        const key = dateKey(d)
+        const bucket = checkInsByDay.get(key)
+        if (bucket) bucket.push(goal)
+        else checkInsByDay.set(key, [goal])
+      }
+    }
+
+    return { dayKeys, entriesByDay, balances, checkInsByDay }
+  }, [monthStart, incomeSources, expenses, startingBalance, goals])
 
   if (!uid) return null
 
@@ -148,6 +147,7 @@ export function CalendarPage() {
               .filter((e) => e.kind === 'expense' && e.status !== 'skipped')
               .reduce((sum, e) => sum + e.amount, 0)
             const balance = grid.balances.get(dayKey) ?? startingBalance
+            const checkIns = grid.checkInsByDay.get(dayKey) ?? []
 
             return (
               <button
@@ -171,6 +171,7 @@ export function CalendarPage() {
                 {(incomeTotal > 0 || expenseTotal > 0) && (
                   <div className="mt-1 truncate text-xs text-slate-400">${balance.toFixed(0)}</div>
                 )}
+                {checkIns.length > 0 && <div className="mt-1 truncate text-xs">🎯 Goal check-in</div>}
               </button>
             )
           }),
@@ -186,6 +187,7 @@ export function CalendarPage() {
           incomeSources={incomeSources}
           expenses={expenses}
           merchants={merchants}
+          goals={goals}
           onClose={() => setSelectedDate(null)}
         />
       )}

@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // ForecastFlow security rules (Phase 1 auth/invites + Phase 3 Control Center
-// + Phase 4 personal finance data).
+// + Phase 4 personal finance data + Phase 5 goals).
 //
 // There are no Cloud Functions on the Firebase Spark (free) plan, so these
 // rules are the ONLY server-side enforcement in the app. Owner bootstrap and
@@ -98,6 +98,9 @@ service cloud.firestore {
         allow read, write: if request.auth.uid == uid;
       }
       match /merchants/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      match /goals/{id} {
         allow read, write: if request.auth.uid == uid;
       }
     }

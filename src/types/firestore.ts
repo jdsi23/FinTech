@@ -90,3 +90,31 @@ export interface MerchantDoc {
   name: string
   createdAt: number
 }
+
+export type GoalType = 'short_term' | 'long_term'
+
+export type SavingsStrategy = 'on_time' | 'slightly_early' | 'asap'
+
+export interface GoalDoc {
+  name: string
+  goalType: GoalType
+  category: string
+  icon: string
+  color: string
+  // What the user already had saved when the goal was created. "Current
+  // saved" is always initialSaved + sum(checkIns) — never stored directly,
+  // so there's one source of truth (same reasoning as Income/Expense
+  // `overrides`).
+  initialSaved: number
+  targetAmount: number
+  targetDate: number
+  notes: string
+  strategy: SavingsStrategy
+  // Only meaningful when strategy === 'slightly_early'.
+  evenSoonerEnabled?: boolean
+  // When weekly check-ins start counting from (defaults to createdAt).
+  startDate: number
+  // Keyed by ISO week-start date (YYYY-MM-DD) -> amount logged that week.
+  checkIns: Record<string, number>
+  createdAt: number
+}

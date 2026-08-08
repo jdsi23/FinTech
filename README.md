@@ -8,10 +8,10 @@ hosted for free on GitHub Pages.
 This README documents **every manual step** needed to get the project running, from a
 completely empty machine to a live, deployed app. Follow it in order the first time.
 
-> **Project status: Phase 4 of many.** Phase 1 built the toolchain, hosting pipeline, and the
+> **Project status: Phase 5 of many.** Phase 1 built the toolchain, hosting pipeline, and the
 > invite-only account system. Phase 2 added optional biometric device unlock. Phase 3 filled
-> out the Control Center. Phase 4 (this one) adds real financial data: Income & Expenses, and
-> the Calendar. Dashboard, Goals, and Reports are still blank placeholders — later phases.
+> out the Control Center. Phase 4 added Income, Expenses, and the Calendar. Phase 5 (this one)
+> adds the Dashboard and Goals. Reports and Search are still to come.
 
 ---
 
@@ -350,6 +350,43 @@ self-editable field (`startingBalance`) on the existing `users/{uid}` update rul
 
 ---
 
+## 14. Dashboard & Goals
+
+**Dashboard** (now the home screen) shows the current month's Monthly Financial Summary — a segmented
+bar (green = income, plus one segment per payment method, using the same colors everywhere in the app)
+with a totals row underneath, Upcoming Bills (next 2 weeks), Recent Activity (last 2 weeks), a Goals
+summary, and Quick Actions. It's built from the exact same Calendar data — add an expense and the
+Dashboard updates immediately, no separate step.
+
+**Goals** is a new nav item. Create a goal with a name, category, icon, color, an amount already saved,
+a target amount/date, and a savings strategy:
+
+- **On Time** — the exact weekly amount needed to hit your target date.
+- **Slightly Early** — aims to finish about 3 weeks ahead of schedule. Optionally enable **Even
+  Sooner**, which gradually raises the suggested amount over time (+5% the first week, +1% each week
+  after, capped at +20%) — turning it off any time reverts to plain Slightly Early without touching
+  anything you've already logged.
+- **As Soon As Possible** — aims to finish about 6 weeks ahead of schedule (the highest weekly
+  suggestion of the three, since it compresses the timeline the most).
+
+These are suggestions only — ForecastFlow never requires a specific amount, never moves money, and
+never judges what you actually saved. Every goal gets a **weekly check-in reminder on the Calendar**
+(same day of the week as when you created it), where you log what you actually saved that week — the
+suggested weekly amount recalculates automatically from there, and a separate "projected completion
+date" estimate (distinct from your fixed target date) moves earlier or later based on your actual
+average pace.
+
+**Before this works against your real project**, redeploy the updated rules once more:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Phase 5 added `users/{uid}/goals` with the same strictly-private pattern as Phase 4's finance
+subcollections.
+
+---
+
 ## Folder structure
 
 ```
@@ -368,11 +405,13 @@ self-editable field (`startingBalance`) on the existing `users/{uid}` update rul
 │   │   ├── biometrics/            # WebAuthn wrapper, unlock gate, Account & Security page
 │   │   ├── control-center/        # User Management, System Info, Backup, Settings (owner-only)
 │   │   ├── finance/                # Income/expense CRUD, forms, merchant autocomplete
-│   │   └── calendar/               # Month grid, Daily View, Manage Items, Log Today
+│   │   ├── calendar/               # Month grid, Daily View, Manage Items, Log Today
+│   │   ├── goals/                  # Savings-strategy math, check-ins, Goal Journey
+│   │   └── dashboard/              # Monthly Financial Summary, Upcoming Bills, Quick Actions
 │   ├── lib/recurrence.ts          # Occurrence generation math (recurring items -> dates)
 │   ├── lib/paymentMethods.ts      # Payment method labels/colors, used consistently app-wide
+│   ├── lib/useCollection.ts       # Shared hook: live-subscribe to a users/{uid}/{path} subcollection
 │   ├── routes/AppRoutes.tsx       # All routing + the auth/owner/verification guard logic
-│   ├── pages/                     # Dashboard, Goals — placeholders for now
 │   └── components/                # Shared UI: AuthLayout, form fields, buttons, AppShell, Modal
 ```
 
@@ -438,6 +477,24 @@ self-editable field (`startingBalance`) on the existing `users/{uid}` update rul
 7. Use the floating **+ Log Today** button from a month other than the current one — confirm the
    item lands on today's actual date, not whatever month you were viewing.
 
+### Dashboard & Goals checklist (deploy the updated rules first — see step 14)
+
+1. Dashboard's segmented bar and totals match what Calendar shows for the current month; add an
+   expense and confirm the Dashboard updates without a reload.
+2. Create a goal with the On Time strategy and a known target amount/date — by hand, confirm the
+   "Suggested: $X/week" figure matches `(target - already saved) / weeks until target date`.
+3. Edit that goal to Slightly Early and enable Even Sooner — the "Suggested stretch target" shown on
+   its Calendar check-in day should be a few percent above the plain suggested amount (starts around
+   +5% in the goal's first week).
+4. On the goal's weekly check-in day (Calendar → that day → Weekly Goal Check-ins), log an amount —
+   confirm it shows as logged, and the Goal Journey's fill/milestone dots update to match.
+5. Log less than suggested one week, then more than suggested another — confirm the suggested weekly
+   figure adjusts accordingly (this is automatic; there's no separate "recalculate" step).
+6. Disable Even Sooner on a goal with existing check-ins — confirm nothing already logged changes,
+   and the stretch target stops appearing.
+7. From the Dashboard's Quick Actions, add an income and an expense — confirm both appear on the
+   Calendar without navigating there first.
+
 ### Verify the deployed site
 
 Repeat steps 1–2 against your live GitHub Pages URL. If you already created the Owner
@@ -465,6 +522,9 @@ same Firestore database.
 | `permission-denied` when adding income/expenses or setting a starting balance | The Phase 4 rules haven't been deployed yet — run `firebase deploy --only firestore:rules` (step 13). |
 | A recurring item doesn't show up in a future month | Check it isn't paused (Manage items shows "(paused)" next to paused items) — pausing intentionally stops new occurrences from generating, while preserving history you already logged. |
 | Calendar balance looks wrong after editing an old item | The balance recalculates from your very first item forward every time the Calendar loads, so an edited past amount changes every day's balance after it — that's expected, not a bug. |
+| `permission-denied` when creating/editing a goal | The Phase 5 rules haven't been deployed yet — run `firebase deploy --only firestore:rules` (step 14). |
+| A goal's weekly check-in doesn't show up on the Calendar | Check the goal isn't already fully funded — check-in reminders stop generating once `currentSaved` reaches the target amount. Also confirm you're looking at the correct day of the week (the same weekday the goal was created on). |
+| "Suggested stretch target" isn't showing | It only appears for the Slightly Early strategy with Even Sooner enabled — On Time and ASAP don't have a stretch target, and Slightly Early without Even Sooner just shows the plain target. |
 
 ---
 
@@ -488,6 +548,5 @@ same Firestore database.
 ## What's next
 
 Phase 1 covered the scaffold, hosting pipeline, and invite-only auth system. Phase 2 added optional
-biometric device unlock. Phase 3 completed the Control Center. Phase 4 (this one) added Income,
-Expenses, and the Calendar. Later phases (not yet built) add: the Dashboard's financial summary, Goals
-with savings strategies, and Reports.
+biometric device unlock. Phase 3 completed the Control Center. Phase 4 added Income, Expenses, and the
+Calendar. Phase 5 (this one) added the Dashboard and Goals. Reports and Search are still to come.
