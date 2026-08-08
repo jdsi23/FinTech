@@ -11,6 +11,8 @@ import { AppShell } from '../components/AppShell'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { CalendarPage } from '../features/calendar/CalendarPage'
 import { GoalsPage } from '../features/goals/GoalsPage'
+import { ReportsPage } from '../features/reports/ReportsPage'
+import { SearchPage } from '../features/search/SearchPage'
 import { AccountSecurityPage } from '../features/biometrics/AccountSecurityPage'
 import { BiometricUnlockPage } from '../features/biometrics/BiometricUnlockPage'
 import { useBiometricStore } from '../features/biometrics/biometricStore'
@@ -58,6 +60,8 @@ function Protected() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/goals" element={<GoalsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/account/security" element={<AccountSecurityPage />} />
         {role === 'owner' && (
           <>

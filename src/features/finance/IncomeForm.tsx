@@ -20,6 +20,7 @@ export function IncomeForm({ uid, itemId, initial, defaultDate, onDone, onCancel
   const [date, setDate] = useState(dayjs(initial?.date ?? defaultDate).format('YYYY-MM-DD'))
   const [depositAccount, setDepositAccount] = useState(initial?.depositAccount ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
+  const [tagsInput, setTagsInput] = useState(initial?.tags?.join(', ') ?? '')
   const [recurring, setRecurring] = useState<RecurringValue>({
     recurring: initial?.recurring ?? false,
     frequency: initial?.frequency,
@@ -40,6 +41,10 @@ export function IncomeForm({ uid, itemId, initial, defaultDate, onDone, onCancel
         date: dayjs(date, 'YYYY-MM-DD').valueOf(),
         depositAccount: depositAccount.trim(),
         notes: notes.trim(),
+        tags: tagsInput
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
         recurring: recurring.recurring,
         overrides: initial?.overrides ?? {},
         ...(recurring.recurring
@@ -87,6 +92,12 @@ export function IncomeForm({ uid, itemId, initial, defaultDate, onDone, onCancel
       />
       <RecurringFields value={recurring} onChange={setRecurring} showEnabledToggle={Boolean(itemId)} />
       <FormField label="Notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      <FormField
+        label="Tags (comma-separated)"
+        type="text"
+        value={tagsInput}
+        onChange={(e) => setTagsInput(e.target.value)}
+      />
       <div className="flex gap-2">
         <div className="w-32">
           <PrimaryButton type="submit" disabled={busy}>

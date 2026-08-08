@@ -8,9 +8,13 @@ export interface OccurrenceEntry {
   date: number
   label: string
   amount: number
+  // The template's base amount, before any override -- the "expected"
+  // value for Forecast Accuracy (amount is the "actual"/effective value).
+  expectedAmount: number
   status: OccurrenceStatus
   paymentMethod?: PaymentMethod
   category?: string
+  tags?: string[]
 }
 
 /** Flat list of every occurrence (recurring or not, overrides applied) for
@@ -26,7 +30,16 @@ export function buildOccurrenceEntries(
   for (const item of incomeSources) {
     for (const d of getOccurrenceDates(item, rangeStart, rangeEnd)) {
       const eff = getEffectiveOccurrence(item.amount, d, item.overrides)
-      entries.push({ id: item.id, kind: 'income', date: d, label: item.name, amount: eff.amount, status: eff.status })
+      entries.push({
+        id: item.id,
+        kind: 'income',
+        date: d,
+        label: item.name,
+        amount: eff.amount,
+        expectedAmount: item.amount,
+        status: eff.status,
+        tags: item.tags,
+      })
     }
   }
 
@@ -39,9 +52,11 @@ export function buildOccurrenceEntries(
         date: d,
         label: item.merchant,
         amount: eff.amount,
+        expectedAmount: item.amount,
         status: eff.status,
         paymentMethod: item.paymentMethod,
         category: item.category,
+        tags: item.tags,
       })
     }
   }

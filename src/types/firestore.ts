@@ -64,6 +64,8 @@ interface RecurringFields {
   // Only meaningful when frequency === 'custom': the interval in days.
   customIntervalDays?: number
   overrides?: Record<string, OccurrenceOverride>
+  // Free-text tags (Phase 6), searchable via Search.
+  tags?: string[]
 }
 
 export interface IncomeDoc extends RecurringFields {

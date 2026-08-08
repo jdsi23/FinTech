@@ -31,6 +31,12 @@ export function AppShell({ role, children }: { role: UserRole; children: ReactNo
               <NavLink to="/goals" className={navLinkClass}>
                 Goals
               </NavLink>
+              <NavLink to="/reports" className={navLinkClass}>
+                Reports
+              </NavLink>
+              <NavLink to="/search" className={navLinkClass}>
+                Search
+              </NavLink>
               {role === 'owner' && (
                 <NavLink to="/control-center" className={navLinkClass}>
                   Control Center

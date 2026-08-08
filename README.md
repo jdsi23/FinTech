@@ -8,10 +8,12 @@ hosted for free on GitHub Pages.
 This README documents **every manual step** needed to get the project running, from a
 completely empty machine to a live, deployed app. Follow it in order the first time.
 
-> **Project status: Phase 5 of many.** Phase 1 built the toolchain, hosting pipeline, and the
-> invite-only account system. Phase 2 added optional biometric device unlock. Phase 3 filled
-> out the Control Center. Phase 4 added Income, Expenses, and the Calendar. Phase 5 (this one)
-> adds the Dashboard and Goals. Reports and Search are still to come.
+> **Project status: Phase 6 of many — feature-complete against the original spec.** Phase 1 built
+> the toolchain, hosting pipeline, and the invite-only account system. Phase 2 added optional
+> biometric device unlock. Phase 3 filled out the Control Center. Phase 4 added Income,
+> Expenses, and the Calendar. Phase 5 added the Dashboard and Goals. Phase 6 (this one) adds
+> Reports and Search. The only spec item deliberately left out is Net Worth, which the spec
+> itself marks "(Future)."
 
 ---
 
@@ -387,6 +389,35 @@ subcollections.
 
 ---
 
+## 15. Reports & Search
+
+Two new nav items, both read-only views over data you've already entered — **no rules deployment
+needed for this phase**, since neither adds a new collection or changes what's writable.
+
+**Reports** has a date range picker (This Month / Last 3 Months / This Year / All Time) and six tabs:
+
+- **Income vs Expenses** — a bar chart comparing totals per month.
+- **Cash Flow** — your running balance over time (the same balance math the Calendar uses, sampled
+  weekly so the chart stays readable over long ranges).
+- **Merchant Spending** / **Category Spending** — where your money's actually going, ranked highest
+  first.
+- **Forecast Accuracy** — how close your actual spending has tracked what was scheduled. Only
+  **Modified** occurrences can show variance (a **Completed** occurrence's actual amount is always the
+  same as scheduled, by definition), so this is really "how often did you need to adjust an amount,
+  and by how much."
+- **Goal Progress** — every goal's current journey, same cards as the Goals page.
+
+**Search** filters across Income, Expenses, and Goals together by Merchant, Category, Goal name, Date
+range, Payment Type, Status, and Tags. Each filter only applies to the types it makes sense for — e.g.
+filling in a Payment Type only searches Expenses, since Income and Goals don't have one — and results
+start empty until you enter at least one filter, rather than dumping your entire history by default.
+
+**Tags are new** on Income and Expense (a plain comma-separated field on the form, same treatment as
+Category) — added specifically so Search's seven filters are all real, rather than silently dropping
+the one dimension nothing already supported.
+
+---
+
 ## Folder structure
 
 ```
@@ -407,9 +438,12 @@ subcollections.
 │   │   ├── finance/                # Income/expense CRUD, forms, merchant autocomplete
 │   │   ├── calendar/               # Month grid, Daily View, Manage Items, Log Today
 │   │   ├── goals/                  # Savings-strategy math, check-ins, Goal Journey
-│   │   └── dashboard/              # Monthly Financial Summary, Upcoming Bills, Quick Actions
+│   │   ├── dashboard/              # Monthly Financial Summary, Upcoming Bills, Quick Actions
+│   │   ├── reports/                 # Chart views + reportMath.ts aggregation
+│   │   └── search/                  # Cross-entity filtering + searchMath.ts
 │   ├── lib/recurrence.ts          # Occurrence generation math (recurring items -> dates)
 │   ├── lib/paymentMethods.ts      # Payment method labels/colors, used consistently app-wide
+│   ├── lib/chartColors.ts         # Hex equivalents of the same palette, for Recharts
 │   ├── lib/useCollection.ts       # Shared hook: live-subscribe to a users/{uid}/{path} subcollection
 │   ├── routes/AppRoutes.tsx       # All routing + the auth/owner/verification guard logic
 │   └── components/                # Shared UI: AuthLayout, form fields, buttons, AppShell, Modal
@@ -495,6 +529,21 @@ subcollections.
 7. From the Dashboard's Quick Actions, add an income and an expense — confirm both appear on the
    Calendar without navigating there first.
 
+### Reports & Search checklist
+
+1. Add a tag to an existing income or expense (edit it from Manage Items), confirm it saves.
+2. Reports → Income vs Expenses / Cash Flow, range "This Month" — confirm the numbers match what the
+   Dashboard already shows for the current month.
+3. Reports → Merchant Spending / Category Spending — hand-check the top entry against what you know is
+   in Manage Items for that merchant/category.
+4. Mark an occurrence **Modified** with a different amount (Calendar → that day), then check Reports →
+   Forecast Accuracy shows that variance and the item in its "largest variances" list.
+5. Reports → Goal Progress shows the same current-saved/target figures as the Goals page.
+6. Search: try each of the seven filters one at a time (merchant, category, goal name, date range,
+   payment type, status, tag) and confirm each narrows results correctly. Search with nothing entered
+   should show "Enter search criteria above," not your entire history. Searching by a goal's name
+   should return the goal itself, not income/expense entries.
+
 ### Verify the deployed site
 
 Repeat steps 1–2 against your live GitHub Pages URL. If you already created the Owner
@@ -525,6 +574,8 @@ same Firestore database.
 | `permission-denied` when creating/editing a goal | The Phase 5 rules haven't been deployed yet — run `firebase deploy --only firestore:rules` (step 14). |
 | A goal's weekly check-in doesn't show up on the Calendar | Check the goal isn't already fully funded — check-in reminders stop generating once `currentSaved` reaches the target amount. Also confirm you're looking at the correct day of the week (the same weekday the goal was created on). |
 | "Suggested stretch target" isn't showing | It only appears for the Slightly Early strategy with Even Sooner enabled — On Time and ASAP don't have a stretch target, and Slightly Early without Even Sooner just shows the plain target. |
+| Search returns nothing even though matching data exists | Some filter combinations are mutually exclusive by design — e.g. Payment Type only searches Expenses, so pairing it with a Goal name filter (Goals-only) will always return nothing. Try one filter at a time. |
+| Forecast Accuracy always shows 100% / no variance items | Only **Modified** occurrences (an amount you explicitly changed from what was scheduled) count toward variance — **Completed** occurrences are always exact by definition. Mark something Modified with a different amount to see it show up. |
 
 ---
 
@@ -549,4 +600,6 @@ same Firestore database.
 
 Phase 1 covered the scaffold, hosting pipeline, and invite-only auth system. Phase 2 added optional
 biometric device unlock. Phase 3 completed the Control Center. Phase 4 added Income, Expenses, and the
-Calendar. Phase 5 (this one) added the Dashboard and Goals. Reports and Search are still to come.
+Calendar. Phase 5 added the Dashboard and Goals. Phase 6 (this one) added Reports and Search. Every
+section of the original spec is now built except Net Worth, which the spec itself flags as a later
+addition — from here it's refinement and whatever new ideas come up, not a fixed remaining list.
