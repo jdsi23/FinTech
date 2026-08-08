@@ -13,9 +13,13 @@ function applyLayoutMode(mode: LayoutMode, current: AppearancePrefs): Appearance
 
 export function AppearancePage() {
   const uid = useAuthStore((s) => s.firebaseUser?.uid)
-  const { saved, setPreview } = useAppearance()
+  const { saved, resolved, setPreview } = useAppearance()
 
-  const [draft, setDraft] = useState<AppearancePrefs>(saved)
+  // Seeded from `resolved`, not `saved` -- if you already have an unsaved
+  // preview running (from an earlier visit to this page, still applied
+  // while you browsed elsewhere), coming back here should show that
+  // in-progress draft, not silently jump back to your last saved settings.
+  const [draft, setDraft] = useState<AppearancePrefs>(resolved)
   const [loadedOnce, setLoadedOnce] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -23,21 +27,19 @@ export function AppearancePage() {
 
   useEffect(() => {
     if (!loadedOnce) {
-      setDraft(saved)
+      setDraft(resolved)
       setLoadedOnce(true)
     }
-  }, [saved, loadedOnce])
+  }, [resolved, loadedOnce])
 
-  // Live-preview the draft app-wide while this page is open.
+  // Live-preview the draft app-wide -- and it's meant to keep previewing
+  // even after navigating to other pages, so you can see how a color
+  // actually looks throughout the app before deciding to Save. It only
+  // reverts on an explicit Don't Save/Load (back to your last saved
+  // settings) or Save (which makes the draft the new saved state).
   useEffect(() => {
     setPreview(draft)
   }, [draft, setPreview])
-
-  // Revert to the saved theme when leaving this page, whether or not the
-  // draft was saved -- unsaved edits should never linger as a "ghost" theme.
-  useEffect(() => {
-    return () => setPreview(null)
-  }, [setPreview])
 
   if (!uid) return null
 
